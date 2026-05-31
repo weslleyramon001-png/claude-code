@@ -20,7 +20,8 @@ tags: [dashboard, cerebro, lyvian]
 | Sistema principal | IXC Provedor |
 | Módulos mapeados | Financeiro · Atendimento · Suporte · Fiscal · Estoque · Produtos |
 | API conectada | 🔴 Aguardando credenciais |
-| Última memória | [[💭-memorias/2026-05-30]] |
+| Sync Obsidian | 🟡 Guia criado — aguardando setup no PC |
+| Última memória | [[💭-memorias/2026-05-31]] |
 
 ---
 
@@ -52,6 +53,7 @@ tags: [dashboard, cerebro, lyvian]
 
 ## 💭 Memórias recentes
 
+- [[💭-memorias/2026-05-31]] — Setup Windows + Obsidian Git · Guia de sync criado
 - [[💭-memorias/2026-05-30]] — Criação do cérebro · Estrutura dos 6 módulos IXC
 
 ---
