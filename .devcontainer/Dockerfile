@@ -1,10 +1,11 @@
-FROM node:20
+FROM node:22
 
 ARG TZ
 ENV TZ="$TZ"
 
 # Install basic development tools and iptables/ipset
-RUN apt update && apt install -y less \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  less \
   git \
   procps \
   sudo \
@@ -19,7 +20,11 @@ RUN apt update && apt install -y less \
   iproute2 \
   dnsutils \
   aggregate \
-  jq
+  jq \
+  ripgrep \
+  fd-find \
+  htop \
+  && rm -rf /var/lib/apt/lists/*
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
