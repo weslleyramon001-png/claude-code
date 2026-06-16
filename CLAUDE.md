@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto Permanente: Projeto Pony-Digital
 
 > Este arquivo é carregado automaticamente em toda sessão do Claude Code.
-> Última atualização: 2026-06-16
+> Última atualização: 2026-06-16 (atualizado 19:34)
 
 ---
 
@@ -76,6 +76,7 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [x] 13 planilhas .xlsx criadas e enviadas ao Drive (15/06/2026)
 - [x] Notas .md documentando cada planilha criadas no Obsidian (15/06/2026)
 - [x] CLAUDE.md criado e commitado no GitHub (16/06/2026)
+- [x] Rede_Neutra_ONU_Tracker.xlsx (V9) finalizado — dark theme + gráficos com fundo escuro + textos brancos (16/06/2026)
 
 ---
 
@@ -118,3 +119,59 @@ Ao iniciar uma nova sessão, o Claude deve:
 - Sempre salvar cópias importantes no Google Drive também
 - Nunca deixar trabalho apenas no container local da sessão
 - Atualizar este CLAUDE.md sempre que uma demanda for concluída ou iniciada
+
+---
+
+## 🧪 Conhecimento Técnico Acumulado — Planilhas xlsx com Gráficos
+
+### Projeto: Rede_Neutra_ONU_Tracker (openpyxl + XML patch)
+**Scripts:** `Script/Rede_Neutra_ONU_Tracker_build.py` e `Script/xlsx_chart_patch.py`
+
+#### Regras para patch de XML de gráficos em arquivos .xlsx
+
+O xlsx é um zip. Os gráficos ficam em `xl/charts/chart*.xml`. Para colorir fundo e texto
+dos gráficos sem suporte nativo do openpyxl, é necessário pós-processar o XML via `zipfile`.
+
+**NUNCA usar `xml.etree.ElementTree` com string-based injection.** O formato final
+deve usar `c:` prefix (`xmlns:c="..."`), não default namespace (`xmlns="..."`).
+Usar `ET.register_namespace("c", C_NS)` + `ET.fromstring()` + `ET.tostring()` garante isso.
+
+**Erros fatais que causam "PASTA DE TRABALHO REPARADA" no Excel:**
+
+| Erro | Causa | Correção |
+|------|-------|----------|
+| String patch sem namespace `c:` | Excel exige `c:` prefix em chart XML | Usar ET (re-serializa com `c:`) |
+| `<c:txPr>` sem `<a:p>` filho | `CT_TextBody` exige `bodyPr + lstStyle + p(1..n)` | Sempre incluir `<a:p><a:pPr>...</a:pPr></a:p>` |
+| `<c:txPr>` fora de ordem em `catAx`/`valAx` | Schema OOXML: `txPr` deve vir **antes** de `<c:crossAx>` | `insert_before(ax, f"{C_}crossAx", mk_txPr(...))` |
+| `<c:txPr>` antes de `<c:tx>` em `title` | Schema: `tx → spPr → txPr` | `title_el.append(mk_txPr(...))` |
+
+**Estrutura correta de `mk_txPr()`:**
+```python
+def mk_txPr(fill_hex, bold=False):
+    txPr = ET.Element(f"{C_}txPr")
+    ET.SubElement(txPr, f"{A_}bodyPr")           # obrigatório
+    ET.SubElement(txPr, f"{A_}lstStyle")          # opcional mas recomendado
+    p = ET.SubElement(txPr, f"{A_}p")            # OBRIGATÓRIO (CT_TextBody)
+    pPr = ET.SubElement(p, f"{A_}pPr")
+    defRPr = ET.SubElement(pPr, f"{A_}defRPr")
+    if bold: defRPr.set("b", "1")
+    sf = ET.SubElement(ET.SubElement(defRPr, f"{A_}solidFill"), f"{A_}srgbClr")
+    sf.set("val", fill_hex)
+    ET.SubElement(defRPr, f"{A_}latin").set("typeface", "Calibri")
+    return txPr
+```
+
+**Posições corretas de inserção (via ET API):**
+- `chartSpace spPr` → `tree.append(mk_spPr(...))` — depois de `</chart>`
+- `plotArea spPr` → `pa.append(mk_spPr(...))` — no final de plotArea
+- `catAx/valAx txPr` → `insert_before(ax, f"{C_}crossAx", mk_txPr(...))` — antes de crossAx
+- `title txPr` → `title_el.append(mk_txPr(...))` — depois de `</tx>`
+- `legend spPr+txPr` → `legend.append(...)` — no final
+- `dLbls txPr` → `dLbls.append(mk_txPr(...))` — no final
+
+**Paleta de cores usada (dark navy/emeralda):**
+```
+BG="060E1C"  BG_CARD="0C1A2E"  BG_HDR="071525"
+EMERALD="10B981"  GOLD="F59E0B"  RED="F87171"  BLUE_L="93C5FD"
+chartSpace fill="0A1628"  plotArea fill="060E1C"  legend fill="0C1A2E"
+```
