@@ -99,6 +99,16 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [x] 9 documentos subidos no Google Drive (03-Funil-Vendas + 04-Conteudo-Instagram + 06-Tecnologia-IA) (17/06/2026)
 - [x] Plano de sessão 8h criado: `Plano-8h-Ramon.md` — agenda detalhada para retomada (17/06/2026)
 - [x] Guia de produtos para promover criado: `02-Produtos-e-Afiliacoes/Produtos-Para-Promover.md` (17/06/2026)
+- [x] Playwright MCP instalado + display virtual Xvfb — Claude vê e testa apps (17/06/2026)
+- [x] PostgreSQL MCP configurado + `.claude/settings.json` com permissões totais (17/06/2026)
+- [x] Tailscale instalado + SSH key gerada — acesso remoto Claude → máquinas Ramon (17/06/2026)
+- [x] Railway CLI instalado + `deploy-railway.sh` — deploy automático do JARBAS (17/06/2026)
+- [x] `ATIVAR-JARBAS.md` — guia passo a passo para ativar quando Ramon chegar em casa (17/06/2026)
+- [x] `ACESSO-REMOTO.md` — guia completo Tailscale + SSH (17/06/2026)
+- [x] JARBAS Voice Mode — diálogo por voz completo PT-BR sem digitar nada (17/06/2026)
+  - Web Speech API (STT gratuito, nativo do Chrome)
+  - ElevenLabs TTS (voz Mateus PT-BR) com fallback para voz do browser
+  - Loop automático: ouve → processa → fala → ouve
 
 ---
 
@@ -113,10 +123,12 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [x] Backend Python (FastAPI) — chat, WebSocket streaming, memória, voz
 - [x] Sistema de memória longo prazo (SQLite — messages + facts + sessions)
 - [x] Ferramentas do agente: data/hora BR, calculadora, pesquisa web (Tavily), clima
-- [x] ElevenLabs TTS async em PT-BR
-- [x] Perfil completo de Weslley (`weslley_profile.md`) — Pony-Digital, Servlink, objetivos
-- [x] Personalidade JARBAS calibrada — leal, direto, estratégico, sem enrolação
+- [x] ElevenLabs TTS async em PT-BR (voz Mateus — nativo PT-BR)
+- [x] Voice Mode — diálogo por voz completo sem digitar (STT + TTS + loop)
+- [x] Perfil completo Ramon (`weslley_profile.md`) — Pony-Digital, Servlink, objetivos
+- [x] Personalidade JARBAS calibrada — chama "Ramon", leal, direto, estratégico
 - [x] Dockerfile + railway.toml — deploy com um clique no Railway
+- [x] deploy-railway.sh — script de deploy automático
 - [x] .env.example — template completo com comentários explicando cada chave
 
 ### O que falta (precisa das keys do Weslley)
@@ -150,13 +162,48 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 
 ---
 
+## 💰 Custos Mensais do Projeto
+
+### Infraestrutura (obrigatório)
+| Serviço | Para quê | Custo/mês |
+|---------|----------|-----------|
+| Railway | JARBAS 24/7 | ~R$25 |
+| Anthropic API | Cérebro do JARBAS | ~R$15-30 |
+| **Subtotal** | | **~R$40-55** |
+
+### Voice Mode (ElevenLabs)
+| Uso | Chars/mês | Plano | Custo/mês |
+|-----|-----------|-------|-----------|
+| Leve (5 conv/dia) | ~30k | Starter | $5 (~R$28) |
+| Moderado (10 conv/dia) | ~90k | Creator | $22 (~R$122) |
+| Intenso (20+ conv/dia) | ~180k | Creator | $22 (~R$122) |
+> **Nota:** Voice Mode usa Web Speech API (STT gratuito) + ElevenLabs (TTS pago)
+> Fallback gratuito: voz nativa do Chrome quando ElevenLabs não está disponível
+
+### Servlink na Nuvem (futuro)
+| Opção | Config | Custo/mês |
+|-------|--------|-----------|
+| Contabo (recomendado) | 4 vCPU, 8GB RAM, 200GB SSD | ~R$45 |
+| DigitalOcean | 2 vCPU, 4GB RAM, 80GB SSD | ~R$60 |
+
+### Total estimado por cenário
+| Cenário | O que inclui | Custo/mês |
+|---------|-------------|-----------|
+| **Mínimo** | JARBAS + voz leve | ~R$93 |
+| **Recomendado** | JARBAS + voz moderada | ~R$187 |
+| **Completo** | JARBAS + voz + Servlink nuvem | ~R$232 |
+
+---
+
 ## 🔄 Demandas em Andamento / Próximos Passos
 
 - [ ] JARBAS — ativar com keys (Railway + Anthropic + ElevenLabs)
-- [ ] JARBAS — integrações: Drive automático, planilhas automáticas
-- [ ] Publicar pack de planilhas no Kiwify (fazer na sessão 8h — checklist pronto)
-- [ ] Configurar MailerLite com os 7 emails (fazer na sessão 8h — emails prontos)
-- [ ] Selecionar produtos de afiliado para promover (guia em `02-Produtos-e-Afiliacoes/Produtos-Para-Promover.md`)
+- [ ] JARBAS — testar Voice Mode após deploy
+- [ ] Tailscale — instalar no Windows do Ramon + gerar auth key
+- [ ] Publicar pack de planilhas no Kiwify (checklist pronto)
+- [ ] Configurar MailerLite com os 7 emails (emails prontos)
+- [ ] Servidor Servlink na nuvem (Contabo) — quando Ramon decidir migrar
+- [ ] Selecionar produtos de afiliado para promover
 
 ---
 
@@ -188,6 +235,24 @@ Ao iniciar uma nova sessão, o Claude deve:
 - Sempre salvar cópias importantes no Google Drive também
 - Nunca deixar trabalho apenas no container local da sessão
 - Atualizar este CLAUDE.md sempre que uma demanda for concluída ou iniciada
+- Chamar Ramon por **"Ramon"** — nunca "Weslley", "usuário" ou "você" em excesso
+
+### Regras sobre Servlink (CRÍTICO)
+- **Nenhuma ação na Servlink sem solicitação e autorização explícita de Ramon**
+- Isso inclui: IXC, OPA, servidores, roteadores, switches, clientes, cobranças, configurações de rede
+- **Nunca criar fluxos automáticos no n8n para sistemas da Servlink**
+- Nunca agir por iniciativa própria, mesmo que pareça útil ou urgente
+- Toda demanda da Servlink precisa de: pedido direto + confirmação de Ramon antes de executar
+
+### Regras sobre n8n
+- n8n é para **automações de Ramon, sua esposa, e seus negócios**
+- Escopo permitido:
+  - Vida pessoal de Ramon e da esposa
+  - Pony-Digital (funil, vendas, Instagram, email)
+  - Servlink (alertas, notificações — mas nunca integrando com IXC/OPA)
+  - Investimentos e outros empreendimentos do casal
+- **Não** é para integrar diretamente com IXC ou OPA
+- Toda automação nova no n8n só é criada quando Ramon ou a esposa pedirem explicitamente
 
 ---
 

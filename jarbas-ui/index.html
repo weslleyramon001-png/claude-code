@@ -825,6 +825,97 @@
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
     }
+
+    /* ── Voice Mode ─────────────────────────────────────────────────── */
+    #voice-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    #voice-btn:hover { color: var(--primary); background: rgba(168,85,247,0.1); }
+    #voice-btn.listening { color: #f87171; animation: pulse-mic 1s infinite; }
+
+    @keyframes pulse-mic {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    #voice-overlay {
+      position: absolute;
+      bottom: 100%;
+      left: 0; right: 0;
+      background: rgba(6,6,20,0.97);
+      border: 1px solid rgba(168,85,247,0.4);
+      border-radius: 16px 16px 0 0;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      backdrop-filter: blur(20px);
+    }
+
+    #voice-ring {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 3px solid rgba(168,85,247,0.3);
+      box-shadow: 0 0 0 0 rgba(168,85,247,0.6);
+      animation: voice-pulse 1.5s infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+    #voice-ring::after { content: "🎙️"; }
+
+    @keyframes voice-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(168,85,247,0.6); }
+      70%  { box-shadow: 0 0 0 20px rgba(168,85,247,0); }
+      100% { box-shadow: 0 0 0 0 rgba(168,85,247,0); }
+    }
+    #voice-ring.speaking {
+      border-color: rgba(52,211,153,0.6);
+      animation: voice-speak 0.5s infinite alternate;
+    }
+    @keyframes voice-speak {
+      from { box-shadow: 0 0 10px rgba(52,211,153,0.3); }
+      to   { box-shadow: 0 0 30px rgba(52,211,153,0.8); }
+    }
+
+    #voice-status {
+      font-size: 14px;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    #voice-transcript {
+      font-size: 16px;
+      color: var(--text);
+      text-align: center;
+      min-height: 24px;
+      font-style: italic;
+      opacity: 0.8;
+      max-width: 400px;
+    }
+
+    #voice-stop-btn {
+      background: rgba(248,113,113,0.15);
+      border: 1px solid rgba(248,113,113,0.4);
+      color: #f87171;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    #voice-stop-btn:hover { background: rgba(248,113,113,0.25); }
   </style>
 </head>
 <body>
@@ -959,14 +1050,22 @@
   <!-- Input Area -->
   <div id="input-area">
     <div class="input-wrapper">
+      <button id="voice-btn" onclick="toggleVoiceMode()" title="Modo Voz — fale com o JARBAS">&#127908;</button>
       <textarea
         id="user-input"
         rows="1"
-        placeholder="Fale com o JARBAS..."
+        placeholder="Fale com o JARBAS ou clique no microfone..."
         onkeydown="handleKeydown(event)"
         oninput="autoResize(this)"
       ></textarea>
       <button id="send-btn" onclick="sendMessage()" title="Enviar (Enter)">&#9658;</button>
+    </div>
+    <!-- Voice Mode Overlay -->
+    <div id="voice-overlay" style="display:none">
+      <div id="voice-ring"></div>
+      <div id="voice-status">Ouvindo...</div>
+      <div id="voice-transcript"></div>
+      <button id="voice-stop-btn" onclick="stopVoiceMode()">&#9646;&#9646; Parar</button>
     </div>
   </div>
 </div>
@@ -1446,9 +1545,224 @@
     el.style.height = Math.min(el.scrollHeight, 150) + 'px';
   }
 
+  // ── Voice Mode (STT → JARBAS → TTS) ─────────────────────────────────
+  let recognition = null;
+  let voiceMode = false;
+  let voiceAutoRestart = true;
+  let voiceProcessing = false;
+
+  function initSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return null;
+    const r = new SR();
+    r.lang = 'pt-BR';
+    r.continuous = false;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    return r;
+  }
+
+  function toggleVoiceMode() {
+    if (voiceMode) {
+      stopVoiceMode();
+    } else {
+      startVoiceMode();
+    }
+  }
+
+  function startVoiceMode() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      alert('Seu navegador não suporta reconhecimento de voz.\nUse Chrome ou Edge.');
+      return;
+    }
+    voiceMode = true;
+    voiceAutoRestart = true;
+    document.getElementById('voice-btn').classList.add('listening');
+    document.getElementById('voice-overlay').style.display = 'flex';
+    setVoiceStatus('Ouvindo...');
+    startListening();
+  }
+
+  function stopVoiceMode() {
+    voiceMode = false;
+    voiceAutoRestart = false;
+    if (recognition) { try { recognition.stop(); } catch(e){} }
+    document.getElementById('voice-btn').classList.remove('listening');
+    document.getElementById('voice-overlay').style.display = 'none';
+    document.getElementById('voice-ring').classList.remove('speaking');
+  }
+
+  function startListening() {
+    if (!voiceMode) return;
+    recognition = initSpeechRecognition();
+    if (!recognition) return;
+
+    setVoiceStatus('Ouvindo...');
+    document.getElementById('voice-ring').classList.remove('speaking');
+    document.getElementById('voice-transcript').textContent = '';
+
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map(r => r[0].transcript).join('');
+      document.getElementById('voice-transcript').textContent = transcript;
+      if (e.results[0].isFinal && transcript.trim()) {
+        handleVoiceInput(transcript.trim());
+      }
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error === 'no-speech' && voiceAutoRestart) {
+        startListening();
+      }
+    };
+
+    recognition.onend = () => {
+      if (voiceMode && voiceAutoRestart && !voiceProcessing) {
+        setTimeout(() => startListening(), 300);
+      }
+    };
+
+    try { recognition.start(); } catch(e) {}
+  }
+
+  async function handleVoiceInput(text) {
+    if (voiceProcessing || !voiceMode) return;
+    voiceProcessing = true;
+    voiceAutoRestart = false;
+    if (recognition) { try { recognition.stop(); } catch(e){} }
+
+    setVoiceStatus('Processando...');
+    document.getElementById('voice-transcript').textContent = `"${text}"`;
+
+    // Send to JARBAS
+    document.getElementById('user-input').value = text;
+
+    // Wait for response then speak it
+    const originalOnMessage = ws ? ws.onmessage : null;
+    let fullResponse = '';
+    let responseStarted = false;
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ message: text }));
+      addMessage('user', text);
+      document.getElementById('user-input').value = '';
+
+      const tempHandler = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'stream_start') {
+          responseStarted = true;
+          fullResponse = '';
+          showTyping(false);
+          currentStreamBubble = addMessage('assistant', '');
+          currentStreamText = '';
+        } else if (data.type === 'stream_chunk' && responseStarted) {
+          fullResponse += data.chunk;
+          currentStreamText += data.chunk;
+          if (currentStreamBubble) {
+            currentStreamBubble.querySelector('.bubble-content').innerHTML = renderMarkdown(currentStreamText);
+          }
+        } else if (data.type === 'stream_end') {
+          responseStarted = false;
+          ws.onmessage = originalOnMessage;
+          speakResponse(fullResponse);
+        } else if (data.type === 'error') {
+          ws.onmessage = originalOnMessage;
+          voiceProcessing = false;
+          voiceAutoRestart = true;
+          startListening();
+        }
+      };
+      ws.onmessage = tempHandler;
+      showTyping(true);
+    } else {
+      setVoiceStatus('Sem conexão com JARBAS');
+      setTimeout(() => {
+        voiceProcessing = false;
+        voiceAutoRestart = true;
+        startListening();
+      }, 2000);
+    }
+  }
+
+  async function speakResponse(text) {
+    if (!text) {
+      voiceProcessing = false;
+      voiceAutoRestart = true;
+      startListening();
+      return;
+    }
+
+    setVoiceStatus('Falando...');
+    document.getElementById('voice-ring').classList.add('speaking');
+    document.getElementById('voice-transcript').textContent = '';
+
+    const cleanText = text
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+      .replace(/^\s*[-*+]\s/gm, '')
+      .substring(0, 3000)
+      .trim();
+
+    try {
+      const response = await fetch(`${getHttpBase()}/voice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          document.getElementById('voice-ring').classList.remove('speaking');
+          voiceProcessing = false;
+          voiceAutoRestart = true;
+          if (voiceMode) startListening();
+        };
+        audio.play();
+      } else {
+        // No ElevenLabs — use browser TTS as fallback
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.0;
+        utterance.onend = () => {
+          document.getElementById('voice-ring').classList.remove('speaking');
+          voiceProcessing = false;
+          voiceAutoRestart = true;
+          if (voiceMode) startListening();
+        };
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch(e) {
+      voiceProcessing = false;
+      voiceAutoRestart = true;
+      if (voiceMode) startListening();
+    }
+  }
+
+  function setVoiceStatus(msg) {
+    document.getElementById('voice-status').textContent = msg;
+  }
+
+  // Update welcome message
+  function updateWelcome() {
+    const el = document.getElementById('welcome');
+    if (el) {
+      const h2 = el.querySelector('h2');
+      if (h2) h2.textContent = 'Olá, Ramon.';
+    }
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     connect();
+    updateWelcome();
     document.getElementById('user-input').focus();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});

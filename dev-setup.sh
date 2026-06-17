@@ -54,3 +54,6 @@ echo "║                                          ║"
 echo "║  Próximo passo:                          ║"
 echo "║  → bash jarbas-backend/run_local.sh      ║"
 echo "╚══════════════════════════════════════════╝"
+
+# 6. Display virtual para controle de apps
+bash start-desktop.sh
