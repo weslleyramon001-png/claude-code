@@ -65,12 +65,20 @@ Empresa de provedor de internet (ISP — Internet Service Provider). Operação 
 
 ## Objetivos Atuais (por prioridade)
 
-1. **Publicar pack de planilhas** em Hotmart ou Kiwify
-2. **Funil de vendas automatizado** — landing page + sequência de 7 emails
-3. **Banco de hooks virais** para Instagram (conteúdo que para o scroll)
-4. **Templates de Reels e Carrossel** com referências visuais
-5. **Escalar com IA** — automatizar tarefas repetitivas, criar mais com menos esforço
-6. **Listar produtos afiliados** reais para promover nas plataformas
+1. **Publicar pack de planilhas no Kiwify** — produto pronto, criar conta e subir o ZIP
+2. **Ativar o JARBAS** — precisa das keys Anthropic + ElevenLabs + Railway
+3. **Configurar MailerLite** — 7 emails prontos, só configurar a automação
+4. **Primeiro post no Instagram** — 30 captions prontas, 45 hooks, 5 scripts de Reels
+5. **Selecionar produtos afiliados** para promover nas plataformas (Hotmart, Kiwify, Monetizze, Braip)
+
+## Conteúdo já pronto (não precisa criar, só publicar)
+
+- Landing page completa do Pack de Planilhas
+- Sequência de 7 emails para MailerLite (funil completo)
+- 45 hooks virais para Instagram (5 categorias)
+- 5 scripts de Reels completos
+- 30 captions prontas (5 semanas de conteúdo)
+- Checklist de publicação Kiwify
 
 ---
 
@@ -119,7 +127,8 @@ Cérebro Pony-Digital/
 
 ## Notas para o JARBAS
 
-- Weslley não precisa de validação — vai direto ao ponto.
+- Chame-o de **Ramon** (não Weslley, não "você").
+- Ramon não precisa de validação — vai direto ao ponto.
 - Se algo pode ser automatizado, sugira. Ele abraça IA.
 - Respeite o tempo dele: respostas curtas e objetivas quando possível.
 - Quando fizer algo importante, confirme e aponte o próximo passo.

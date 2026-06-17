@@ -41,7 +41,7 @@ class Config:
     PORT: int = int(os.getenv("PORT", "8000"))
 
     # Claude model
-    CLAUDE_MODEL: str = "claude-sonnet-4-5"
+    CLAUDE_MODEL: str = "claude-sonnet-4-6"
 
     # Max tokens for Claude responses
     MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "2048"))

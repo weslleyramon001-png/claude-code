@@ -184,6 +184,70 @@ async def create_file_content(filename: str, content: str, file_type: str = "tex
     )
 
 
+async def generate_pony_digital_content(content_type: str, topic: str) -> str:
+    """
+    Generate Pony-Digital specific content for Instagram or sales copy.
+
+    Args:
+        content_type: One of: hook, caption, email, cta, headline
+        topic:        The subject of the content (e.g. "planilhas", "produtividade", "finanças")
+
+    Returns:
+        Generated content ready to use.
+    """
+    templates = {
+        "hook": [
+            f"Se você ainda não controla seu {topic}, você está deixando dinheiro na mesa.",
+            f"Eu perdi R$3.000 por não usar {topic} certo. Hoje eu te mostro como evitar isso.",
+            f"O segredo dos empreendedores que faturam mais está no {topic}. Veja o que ninguém te conta.",
+            f"Para de fazer {topic} na mão. Existe uma forma mais inteligente — e gratuita.",
+            f"Em 2 minutos você vai entender por que seu {topic} não está funcionando.",
+        ],
+        "caption": (
+            f"A maioria das pessoas ignora {topic} até ser tarde demais.\n\n"
+            f"Eu aprendi da forma difícil que controlar {topic} é o primeiro passo para qualquer negócio sério.\n\n"
+            f"Por isso criei uma planilha que resolve isso de uma vez por todas.\n\n"
+            f"👇 Link na bio para baixar agora.\n\n"
+            f"#PonyDigital #Empreendedorismo #Planilhas #{topic.replace(' ', '')}"
+        ),
+        "email": (
+            f"Assunto: Sobre o seu {topic}...\n\n"
+            f"Olá,\n\n"
+            f"Quero falar sobre {topic} de uma forma diferente hoje.\n\n"
+            f"A maioria das pessoas só pensa nisso quando o problema já explodiu.\n\n"
+            f"Mas os empreendedores que realmente crescem tratam {topic} como prioridade desde o dia 1.\n\n"
+            f"É por isso que criei a planilha de {topic} — para você ter controle total, sem complicação.\n\n"
+            f"Clique aqui para ver: [LINK]\n\n"
+            f"Até mais,\nRamon"
+        ),
+        "cta": [
+            f"👉 Baixe a planilha de {topic} — link na bio",
+            f"✅ Acesse agora: planilha de {topic} com tudo pronto",
+            f"🔗 Link na bio → Planilha de {topic} (oferta por tempo limitado)",
+            f"💡 Quer dominar {topic}? Clica no link da bio",
+        ],
+        "headline": [
+            f"Planilha de {topic.title()}: Controle Total em Menos de 5 Minutos",
+            f"Chega de Perder Dinheiro com {topic.title()} — Use a Planilha Certa",
+            f"O Sistema Definitivo de {topic.title()} para Empreendedores",
+            f"Domine seu {topic.title()} com Esta Planilha Profissional",
+        ],
+    }
+
+    ct = content_type.lower().strip()
+    if ct not in templates:
+        return (
+            f"Tipo de conteúdo '{content_type}' não reconhecido. "
+            f"Use: hook, caption, email, cta, ou headline."
+        )
+
+    result = templates[ct]
+    if isinstance(result, list):
+        import random
+        return f"**{content_type.upper()} para '{topic}':**\n\n" + "\n\n—\n\n".join(result)
+    return f"**{content_type.upper()} para '{topic}':**\n\n{result}"
+
+
 async def get_weather(city: str) -> str:
     """
     Placeholder weather function.
@@ -286,6 +350,29 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
+            "name": "generate_pony_digital_content",
+            "description": (
+                "Gera conteúdo de marketing para o negócio Pony-Digital de Ramon: "
+                "hooks para Instagram, captions, emails de vendas, CTAs e headlines. "
+                "Use quando Ramon pedir para criar conteúdo, post, email ou copy relacionado ao negócio dele."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "content_type": {
+                        "type": "string",
+                        "description": "Tipo de conteúdo: hook, caption, email, cta, ou headline",
+                        "enum": ["hook", "caption", "email", "cta", "headline"],
+                    },
+                    "topic": {
+                        "type": "string",
+                        "description": "Tema do conteúdo. Ex: 'planilhas', 'finanças', 'produtividade', 'negócios digitais'",
+                    },
+                },
+                "required": ["content_type", "topic"],
+            },
+        },
+        {
             "name": "get_weather",
             "description": "Consulta a previsão do tempo para uma cidade. (Placeholder — requer configuração de API)",
             "input_schema": {
@@ -334,6 +421,12 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any) -> st
                 filename=tool_input.get("filename", "arquivo.txt"),
                 content=tool_input.get("content", ""),
                 file_type=tool_input.get("file_type", "text"),
+            )
+
+        elif tool_name == "generate_pony_digital_content":
+            return await generate_pony_digital_content(
+                content_type=tool_input.get("content_type", "caption"),
+                topic=tool_input.get("topic", "negócios digitais"),
             )
 
         elif tool_name == "get_weather":
