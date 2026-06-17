@@ -93,6 +93,9 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [x] 30 Captions prontas para Instagram (5 semanas de conteúdo) (17/06/2026)
 - [x] Checklist completo para publicar no Kiwify (6 etapas detalhadas) (17/06/2026)
 - [x] Notas Obsidian criadas: `03-Funil-Vendas/MOC-Funil-Vendas.md` + `04-Conteudo-Instagram/MOC-Conteudo-Instagram.md` (17/06/2026)
+- [x] 9 documentos subidos no Google Drive (03-Funil-Vendas + 04-Conteudo-Instagram) (17/06/2026)
+- [x] JARBAS melhorado: modelo atualizado (claude-sonnet-4-6), voz PT-BR, nova tool Pony-Digital, run_local.sh (17/06/2026)
+- [x] JARBAS personalidade: chama Ramon por "Ramon", objetivos atualizados (17/06/2026)
 - [x] 9 documentos subidos no Google Drive (03-Funil-Vendas + 04-Conteudo-Instagram + 06-Tecnologia-IA) (17/06/2026)
 - [x] Plano de sessão 8h criado: `Plano-8h-Ramon.md` — agenda detalhada para retomada (17/06/2026)
 - [x] Guia de produtos para promover criado: `02-Produtos-e-Afiliacoes/Produtos-Para-Promover.md` (17/06/2026)
@@ -125,12 +128,21 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [ ] Testar voz em português com ElevenLabs
 - [ ] PWA — ícone do JARBAS na tela do celular
 
-### Passos para ativar (08h com Ramon)
+### Passos para ativar (com Ramon)
 1. Abrir `jarbas-backend/.env.example` → copiar para `.env` → preencher keys
-2. `railway login` → `railway init` → `railway up` dentro de `jarbas-backend/`
-3. Railway gera URL pública → copiar URL
-4. Abrir `jarbas-ui/index.html` → Settings panel → colar URL do Railway
-5. JARBAS online — testar chat + voz + memória
+2. **Opção A (local rápido):** `bash jarbas-backend/run_local.sh` → abre em localhost:8000
+3. **Opção B (Railway):** `railway login` → `railway init` → `railway up` dentro de `jarbas-backend/`
+4. Railway gera URL pública → copiar URL
+5. Abrir `jarbas-ui/index.html` → Settings panel → colar URL do Railway
+6. JARBAS online — testar chat + voz + memória
+
+### Melhorias feitas sem keys (17/06/2026)
+- Modelo atualizado: `claude-sonnet-4-6` (mais rápido e capaz)
+- anthropic SDK atualizado: `0.50.0`
+- Voz PT-BR padrão: Mateus (ElevenLabs ID: `XrExE9yKIg1WjnnlVkGX`)
+- Nova ferramenta: `generate_pony_digital_content` (hook, caption, email, cta, headline)
+- Script `run_local.sh` para testar sem Railway
+- Personalidade: chama Ramon por "Ramon", objetivos atualizados
 
 ---
 
