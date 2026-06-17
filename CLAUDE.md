@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto Permanente: Projeto Pony-Digital
 
 > Este arquivo é carregado automaticamente em toda sessão do Claude Code.
-> Última atualização: 2026-06-16 (atualizado 19:34)
+> Última atualização: 2026-06-17 (atualizado enquanto Weslley dormia)
 
 ---
 
@@ -76,16 +76,58 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [x] 13 planilhas .xlsx criadas e enviadas ao Drive (15/06/2026)
 - [x] Notas .md documentando cada planilha criadas no Obsidian (15/06/2026)
 - [x] CLAUDE.md criado e commitado no GitHub (16/06/2026)
-- [x] Rede_Neutra_ONU_Tracker.xlsx (V9) finalizado — dark theme + gráficos com fundo escuro + textos brancos (16/06/2026)
+- [x] Rede_Neutra_ONU_Tracker.xlsx (V9) finalizado — dark theme + gráficos fundo escuro + textos brancos (16/06/2026)
+- [x] Skills criadas: /planilha-xlsx, /post-instagram, /funil-vendas (16/06/2026)
+- [x] Biblioteca de padrões criada: patterns/planilhas-xlsx.md, instagram.md, copywriting.md (16/06/2026)
+- [x] JARBAS UI v2.0 — interface holográfica roxa/violeta/magenta (16/06/2026)
+- [x] JARBAS Backend — FastAPI + memória SQLite + personalidade + Railway ready (16/06/2026)
+- [x] JARBAS Backend v2 — tools.py (5 ferramentas), voice.py (ElevenLabs async), weslley_profile.md, agentic loop completo (17/06/2026)
+- [x] JARBAS UI v2 — WebSocket streaming, typewriter effect, voice playback, settings panel (17/06/2026)
+
+---
+
+## 🔄 JARBAS — Status do Projeto (retomar com Weslley)
+
+**Nome definitivo:** JARBAS
+**Arquivos:** `jarbas-ui/index.html` + `jarbas-backend/`
+**Branch GitHub:** `claude/great-ramanujan-dsjpac`
+
+### O que está 100% pronto
+- [x] Interface holográfica roxa — rings magenta/índigo/violeta/cyan
+- [x] Backend Python (FastAPI) — chat, WebSocket streaming, memória, voz
+- [x] Sistema de memória longo prazo (SQLite — messages + facts + sessions)
+- [x] Ferramentas do agente: data/hora BR, calculadora, pesquisa web (Tavily), clima
+- [x] ElevenLabs TTS async em PT-BR
+- [x] Perfil completo de Weslley (`weslley_profile.md`) — Pony-Digital, Servlink, objetivos
+- [x] Personalidade JARBAS calibrada — leal, direto, estratégico, sem enrolação
+- [x] Dockerfile + railway.toml — deploy com um clique no Railway
+- [x] .env.example — template completo com comentários explicando cada chave
+
+### O que falta (precisa das keys do Weslley)
+- [ ] API Key Anthropic → `console.anthropic.com` → API Keys → criar + $10 crédito
+- [ ] API Key ElevenLabs → `elevenlabs.io` → Profile → API Keys (já tem conta)
+- [ ] Criar conta Railway → `railway.app` → Login with GitHub
+- [ ] (Opcional) API Key Tavily → `tavily.com` → para pesquisa web em tempo real
+- [ ] Deploy no Railway + conectar frontend ao backend URL
+- [ ] Testar voz em português com ElevenLabs
+- [ ] PWA — ícone do JARBAS na tela do celular
+
+### Passos para ativar (08h com Weslley)
+1. Abrir `jarbas-backend/.env.example` → copiar para `.env` → preencher keys
+2. `railway login` → `railway init` → `railway up` dentro de `jarbas-backend/`
+3. Railway gera URL pública → copiar URL
+4. Abrir `jarbas-ui/index.html` → Settings panel → colar URL do Railway
+5. JARBAS online — testar chat + voz + memória
 
 ---
 
 ## 🔄 Demandas em Andamento / Próximos Passos
 
+- [ ] JARBAS — ativar com keys (Weslley traz as keys)
+- [ ] JARBAS — integrações: Drive automático, planilhas automáticas
+- [ ] JARBAS — app mobile (PWA — ícone na tela do celular)
 - [ ] Listar produtos REAIS para promover em cada plataforma (Hotmart, Kiwify, Monetizze, Braip)
 - [ ] Criar banco de Hooks Virais para Instagram
-- [ ] Criar Templates de Reels e Carrossel (com referências visuais)
-- [ ] Preencher Métricas com números reais conforme aparecem
 - [ ] Configurar funil de vendas (landing page + sequência de 7 emails)
 - [ ] Publicar pack de planilhas em alguma plataforma
 
