@@ -235,6 +235,18 @@ Ao iniciar uma nova sessão, o Claude deve:
 - Sempre salvar cópias importantes no Google Drive também
 - Nunca deixar trabalho apenas no container local da sessão
 - Atualizar este CLAUDE.md sempre que uma demanda for concluída ou iniciada
+- Chamar Ramon por **"Ramon"** — nunca "Weslley", "usuário" ou "você" em excesso
+
+### Regras sobre IXC, OPA e Servlink
+- **IXC e OPA são sistemas da Servlink já em operação — não tocar sem ordem explícita**
+- **Nunca criar fluxos automáticos no n8n para IXC ou OPA**
+- Qualquer demanda no IXC/OPA só será executada quando Ramon pedir diretamente
+- A Servlink tem sua própria operação — Claude atua só quando solicitado
+
+### Regras sobre n8n
+- n8n é para **automações pessoais e comerciais do Ramon** (Pony-Digital, vida pessoal)
+- **Não** é para integrar com IXC, OPA ou sistemas internos da Servlink
+- Exemplos de uso correto: funil de vendas, WhatsApp pessoal, Instagram, notificações pessoais
 
 ---
 
