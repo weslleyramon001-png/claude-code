@@ -1,0 +1,51 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/claude-code"]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "mcp-postgresmcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://usuario:senha@localhost:5432/banco"
+      }
+    }
+  },
+  "permissions": {
+    "allow": [
+      "mcp__Google_Drive__search_files",
+      "mcp__Google_Drive__create_file",
+      "mcp__Google_Drive__read_file_content",
+      "mcp__Google_Drive__list_recent_files",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_screenshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_evaluate",
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__write_file",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__search_files",
+      "Bash(git *)",
+      "Bash(python* *)",
+      "Bash(pip *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(uvicorn *)",
+      "Bash(curl *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(zip *)",
+      "Bash(unzip *)"
+    ]
+  }
+}
