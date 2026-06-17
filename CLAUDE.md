@@ -83,6 +83,9 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [x] JARBAS Backend — FastAPI + memória SQLite + personalidade + Railway ready (16/06/2026)
 - [x] JARBAS Backend v2 — tools.py (5 ferramentas), voice.py (ElevenLabs async), weslley_profile.md, agentic loop completo (17/06/2026)
 - [x] JARBAS UI v2 — WebSocket streaming, typewriter effect, voice playback, settings panel (17/06/2026)
+- [x] JARBAS PWA — manifest.json + sw.js + meta tags iOS/Android — instala como app no celular (17/06/2026)
+- [x] JARBAS setup.sh — script de ativação interativo (pede keys, instala deps, testa servidor) (17/06/2026)
+- [x] Nota Obsidian do JARBAS criada: `06-Tecnologia-IA/JARBAS-Status.md` (17/06/2026)
 
 ---
 

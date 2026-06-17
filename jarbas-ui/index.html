@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#A855F7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="JARBAS" />
+  <link rel="manifest" href="manifest.json" />
   <title>JARBAS — Just A Rather Brilliant Autonomous System</title>
   <style>
     /* ── Reset & base ──────────────────────────────────────────────── */
@@ -1445,6 +1450,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     connect();
     document.getElementById('user-input').focus();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   });
 </script>
 </body>
