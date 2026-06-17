@@ -143,12 +143,16 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - Nova ferramenta: `generate_pony_digital_content` (hook, caption, email, cta, headline)
 - Script `run_local.sh` para testar sem Railway
 - Personalidade: chama Ramon por "Ramon", objetivos atualizados
+- Playwright MCP instalado e testado — Claude já vê e testa apps visualmente
+- PostgreSQL MCP configurado — pronto para conectar banco de dados
+- `.claude/settings.json` — permissões totais liberadas para qualquer tarefa
+- `dev-setup.sh` — script que prepara ambiente completo em qualquer máquina
 
 ---
 
 ## 🔄 Demandas em Andamento / Próximos Passos
 
-- [ ] JARBAS — ativar com keys (Ramon traz as keys às 8h)
+- [ ] JARBAS — ativar com keys (Railway + Anthropic + ElevenLabs)
 - [ ] JARBAS — integrações: Drive automático, planilhas automáticas
 - [ ] Publicar pack de planilhas no Kiwify (fazer na sessão 8h — checklist pronto)
 - [ ] Configurar MailerLite com os 7 emails (fazer na sessão 8h — emails prontos)
