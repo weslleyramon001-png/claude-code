@@ -244,9 +244,14 @@ Ao iniciar uma nova sessão, o Claude deve:
 - A Servlink tem sua própria operação — Claude atua só quando solicitado
 
 ### Regras sobre n8n
-- n8n é para **automações pessoais e comerciais do Ramon** (Pony-Digital, vida pessoal)
-- **Não** é para integrar com IXC, OPA ou sistemas internos da Servlink
-- Exemplos de uso correto: funil de vendas, WhatsApp pessoal, Instagram, notificações pessoais
+- n8n é para **automações de Ramon, sua esposa, e seus negócios**
+- Escopo permitido:
+  - Vida pessoal de Ramon e da esposa
+  - Pony-Digital (funil, vendas, Instagram, email)
+  - Servlink (alertas, notificações — mas nunca integrando com IXC/OPA)
+  - Investimentos e outros empreendimentos do casal
+- **Não** é para integrar diretamente com IXC ou OPA
+- Toda automação nova no n8n só é criada quando Ramon ou a esposa pedirem explicitamente
 
 ---
 
