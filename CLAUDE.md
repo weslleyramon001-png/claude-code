@@ -93,6 +93,9 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [x] 30 Captions prontas para Instagram (5 semanas de conteúdo) (17/06/2026)
 - [x] Checklist completo para publicar no Kiwify (6 etapas detalhadas) (17/06/2026)
 - [x] Notas Obsidian criadas: `03-Funil-Vendas/MOC-Funil-Vendas.md` + `04-Conteudo-Instagram/MOC-Conteudo-Instagram.md` (17/06/2026)
+- [x] 9 documentos subidos no Google Drive (03-Funil-Vendas + 04-Conteudo-Instagram + 06-Tecnologia-IA) (17/06/2026)
+- [x] Plano de sessão 8h criado: `Plano-8h-Ramon.md` — agenda detalhada para retomada (17/06/2026)
+- [x] Guia de produtos para promover criado: `02-Produtos-e-Afiliacoes/Produtos-Para-Promover.md` (17/06/2026)
 
 ---
 
@@ -122,7 +125,7 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 - [ ] Testar voz em português com ElevenLabs
 - [ ] PWA — ícone do JARBAS na tela do celular
 
-### Passos para ativar (08h com Weslley)
+### Passos para ativar (08h com Ramon)
 1. Abrir `jarbas-backend/.env.example` → copiar para `.env` → preencher keys
 2. `railway login` → `railway init` → `railway up` dentro de `jarbas-backend/`
 3. Railway gera URL pública → copiar URL
@@ -133,13 +136,11 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 
 ## 🔄 Demandas em Andamento / Próximos Passos
 
-- [ ] JARBAS — ativar com keys (Weslley traz as keys)
+- [ ] JARBAS — ativar com keys (Ramon traz as keys às 8h)
 - [ ] JARBAS — integrações: Drive automático, planilhas automáticas
-- [ ] JARBAS — app mobile (PWA — ícone na tela do celular)
-- [ ] Listar produtos REAIS para promover em cada plataforma (Hotmart, Kiwify, Monetizze, Braip)
-- [ ] Criar banco de Hooks Virais para Instagram
-- [ ] Configurar funil de vendas (landing page + sequência de 7 emails)
-- [ ] Publicar pack de planilhas em alguma plataforma
+- [ ] Publicar pack de planilhas no Kiwify (fazer na sessão 8h — checklist pronto)
+- [ ] Configurar MailerLite com os 7 emails (fazer na sessão 8h — emails prontos)
+- [ ] Selecionar produtos de afiliado para promover (guia em `02-Produtos-e-Afiliacoes/Produtos-Para-Promover.md`)
 
 ---
 
