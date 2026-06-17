@@ -74,6 +74,7 @@ class ClearRequest(BaseModel):
 
 class VoiceRequest(BaseModel):
     text: str
+    voice_id: Optional[str] = None
 
 
 # ── Core chat logic (shared by /chat and WebSocket) ───────────────────────
@@ -318,10 +319,11 @@ async def voice(request: VoiceRequest):
             },
         )
 
+    voice_id = request.voice_id or config.ELEVENLABS_VOICE_ID
     audio_bytes = await text_to_speech(
         text=request.text,
         api_key=config.ELEVENLABS_API_KEY,
-        voice_id=config.ELEVENLABS_VOICE_ID,
+        voice_id=voice_id,
     )
 
     if audio_bytes is None:

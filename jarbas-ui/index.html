@@ -734,6 +734,7 @@
       flex-shrink: 0;
       padding: 12px 0 16px;
       border-top: 1px solid var(--border2);
+      position: relative;
     }
 
     .input-wrapper {
@@ -987,6 +988,11 @@
       </label>
     </div>
 
+    <div class="field" id="voice-id-field" style="display:none">
+      <label>ElevenLabs Voice ID (opcional)</label>
+      <input type="text" id="voice-id-input" placeholder="XrExE9yKIg1WjnnlVkGX" />
+    </div>
+
     <div class="toggle-row">
       <span>Efeito de digitacao</span>
       <label class="toggle">
@@ -1028,7 +1034,7 @@
   <div id="chat-area">
     <div id="welcome">
       <div class="welcome-icon">&#129302;</div>
-      <h2>Ola, Weslley.</h2>
+      <h2>Ola, Ramon.</h2>
       <p>Sou o JARBAS, seu assistente de IA pessoal. Pronto para ajudar com o Pony-Digital, Servlink ou qualquer outra coisa.</p>
       <div class="welcome-chips">
         <div class="chip" onclick="sendChip('Qual o status do pack de planilhas?')">Pack de planilhas</div>
@@ -1077,6 +1083,7 @@
   let sessionId = localStorage.getItem('jarbas_session_id') || 'default';
   let voiceEnabled = localStorage.getItem('jarbas_voice') === 'true';
   let typewriterEnabled = localStorage.getItem('jarbas_typewriter') !== 'false';
+  let overrideVoiceId = localStorage.getItem('jarbas_voice_id') || '';
   let isStreaming = false;
   let currentStreamBubble = null;
   let currentStreamText = '';
@@ -1095,6 +1102,11 @@
     document.getElementById('session-id-input').value = sessionId;
     document.getElementById('voice-toggle').checked = voiceEnabled;
     document.getElementById('typewriter-toggle').checked = typewriterEnabled;
+    document.getElementById('voice-id-input').value = overrideVoiceId;
+    document.getElementById('voice-id-field').style.display = voiceEnabled ? 'block' : 'none';
+    document.getElementById('voice-toggle').addEventListener('change', (e) => {
+      document.getElementById('voice-id-field').style.display = e.target.checked ? 'block' : 'none';
+    });
   }
 
   function saveSettings() {
@@ -1102,11 +1114,13 @@
     sessionId = document.getElementById('session-id-input').value.trim() || 'default';
     voiceEnabled = document.getElementById('voice-toggle').checked;
     typewriterEnabled = document.getElementById('typewriter-toggle').checked;
+    overrideVoiceId = document.getElementById('voice-id-input').value.trim();
 
     localStorage.setItem('jarbas_ws_url', wsUrl);
     localStorage.setItem('jarbas_session_id', sessionId);
     localStorage.setItem('jarbas_voice', voiceEnabled);
     localStorage.setItem('jarbas_typewriter', typewriterEnabled);
+    localStorage.setItem('jarbas_voice_id', overrideVoiceId);
 
     hideSettings();
     reconnect();
@@ -1246,8 +1260,11 @@
         actions.appendChild(voiceBtn);
         currentStreamBubble.appendChild(actions);
 
-        // Auto-play voice if enabled
-        if (voiceEnabled && responseText) {
+        // Voice mode: speak and restart listening loop
+        if (voiceProcessing && voiceMode) {
+          speakResponse(responseText);
+        } else if (voiceEnabled && responseText) {
+          // Auto-play if voice toggle is on
           playVoice(responseText, voiceBtn);
         }
       }
@@ -1261,6 +1278,16 @@
       isStreaming = false;
       hideTyping();
       enableInput();
+
+      // Reset voice mode state on error
+      if (voiceProcessing) {
+        voiceProcessing = false;
+        voiceAutoRestart = true;
+        if (voiceMode) {
+          setVoiceStatus('Erro — ouvindo novamente...');
+          setTimeout(() => startListening(), 1500);
+        }
+      }
 
       // Check if it's a configuration error
       if (data.message && data.message.includes('ANTHROPIC_API_KEY')) {
@@ -1325,7 +1352,7 @@
 
     const avatar = document.createElement('div');
     avatar.className = 'avatar';
-    avatar.textContent = role === 'user' ? 'W' : '🤖';
+    avatar.textContent = role === 'user' ? 'R' : '🤖';
 
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
@@ -1421,10 +1448,13 @@
     btn.disabled = true;
 
     try {
+      const voicePayload = { text: cleanText.substring(0, 3000) };
+      if (overrideVoiceId) voicePayload.voice_id = overrideVoiceId;
+
       const response = await fetch(`${getHttpBase()}/voice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleanText.substring(0, 3000) }),
+        body: JSON.stringify(voicePayload),
       });
 
       if (!response.ok) {
@@ -1528,6 +1558,7 @@
       calculate: 'Calculadora',
       web_search: 'Busca Web',
       create_file_content: 'Criar Arquivo',
+      generate_pony_digital_content: 'Pony-Digital',
       get_weather: 'Clima',
     };
     return names[name] || name;
@@ -1635,54 +1666,31 @@
     setVoiceStatus('Processando...');
     document.getElementById('voice-transcript').textContent = `"${text}"`;
 
-    // Send to JARBAS
-    document.getElementById('user-input').value = text;
-
-    // Wait for response then speak it
-    const originalOnMessage = ws ? ws.onmessage : null;
-    let fullResponse = '';
-    let responseStarted = false;
-
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ message: text }));
-      addMessage('user', text);
-      document.getElementById('user-input').value = '';
-
-      const tempHandler = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'stream_start') {
-          responseStarted = true;
-          fullResponse = '';
-          showTyping(false);
-          currentStreamBubble = addMessage('assistant', '');
-          currentStreamText = '';
-        } else if (data.type === 'stream_chunk' && responseStarted) {
-          fullResponse += data.chunk;
-          currentStreamText += data.chunk;
-          if (currentStreamBubble) {
-            currentStreamBubble.querySelector('.bubble-content').innerHTML = renderMarkdown(currentStreamText);
-          }
-        } else if (data.type === 'stream_end') {
-          responseStarted = false;
-          ws.onmessage = originalOnMessage;
-          speakResponse(fullResponse);
-        } else if (data.type === 'error') {
-          ws.onmessage = originalOnMessage;
-          voiceProcessing = false;
-          voiceAutoRestart = true;
-          startListening();
-        }
-      };
-      ws.onmessage = tempHandler;
-      showTyping(true);
-    } else {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
       setVoiceStatus('Sem conexão com JARBAS');
       setTimeout(() => {
         voiceProcessing = false;
         voiceAutoRestart = true;
         startListening();
       }, 2000);
+      return;
     }
+
+    // Use the normal send flow — handleServerMessage checks voiceProcessing
+    // to call speakResponse() instead of playVoice() when done.
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    appendMessage('user', text);
+    showTyping();
+    disableInput();
+    isStreaming = true;
+
+    const bubble = appendStreamingBubble();
+    currentStreamBubble = bubble;
+    currentStreamText = '';
+
+    ws.send(JSON.stringify({ message: text }));
   }
 
   async function speakResponse(text) {
@@ -1708,10 +1716,13 @@
       .trim();
 
     try {
+      const voicePayload2 = { text: cleanText };
+      if (overrideVoiceId) voicePayload2.voice_id = overrideVoiceId;
+
       const response = await fetch(`${getHttpBase()}/voice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleanText }),
+        body: JSON.stringify(voicePayload2),
       });
 
       if (response.ok) {
@@ -1750,19 +1761,9 @@
     document.getElementById('voice-status').textContent = msg;
   }
 
-  // Update welcome message
-  function updateWelcome() {
-    const el = document.getElementById('welcome');
-    if (el) {
-      const h2 = el.querySelector('h2');
-      if (h2) h2.textContent = 'Olá, Ramon.';
-    }
-  }
-
   // ── Init ─────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     connect();
-    updateWelcome();
     document.getElementById('user-input').focus();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
