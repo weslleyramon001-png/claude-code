@@ -6,3 +6,8 @@
 jarbas-backend/.env
 *.env
 
+# Arquivos gerados em runtime
+__pycache__/
+*.pyc
+*.db
+
