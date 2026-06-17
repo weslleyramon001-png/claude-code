@@ -10,20 +10,26 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --emerald: #10B981;
-    --emerald-dim: #059669;
-    --emerald-glow: rgba(16,185,129,0.4);
-    --emerald-faint: rgba(16,185,129,0.08);
-    --navy: #060E1C;
-    --navy-card: #0C1A2E;
-    --navy-hdr: #071525;
+    --v1: #A855F7;       /* violeta vivo */
+    --v2: #C084FC;       /* lilás brilhante */
+    --v3: #7C3AED;       /* roxo profundo */
+    --mag: #E879F9;      /* magenta holográfico */
+    --ind: #818CF8;      /* índigo */
+    --cyan: #67E8F9;     /* ciano acento */
     --gold: #F59E0B;
-    --white: #F0F9FF;
-    --gray: #94A3B8;
+    --white: #FAF5FF;
+    --gray: #A78BCA;
+    --bg: #09050F;
+    --bg-card: #110820;
+    --bg-hdr: #0C0618;
+    --glow: rgba(168,85,247,0.5);
+    --glow-mag: rgba(232,121,249,0.4);
+    --glow-ind: rgba(129,140,248,0.35);
+    --faint: rgba(168,85,247,0.06);
   }
 
   body {
-    background: var(--navy);
+    background: var(--bg);
     color: var(--white);
     font-family: 'Rajdhani', sans-serif;
     height: 100vh;
@@ -35,516 +41,484 @@
     position: relative;
   }
 
-  /* ── Scanlines overlay ── */
-  body::before {
+  /* ── Ambient background glow ── */
+  body::after {
     content: '';
     position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(16,185,129,0.015) 2px,
-      rgba(16,185,129,0.015) 4px
-    );
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
     pointer-events: none;
-    z-index: 0;
+    animation: ambient 6s ease-in-out infinite alternate;
+  }
+  @keyframes ambient {
+    0%   { transform: translate(-50%,-50%) scale(1);   filter: hue-rotate(0deg); }
+    50%  { transform: translate(-50%,-52%) scale(1.1); filter: hue-rotate(30deg); }
+    100% { transform: translate(-50%,-48%) scale(0.95);filter: hue-rotate(-20deg); }
+  }
+
+  /* ── Scanlines ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(168,85,247,0.018) 2px, rgba(168,85,247,0.018) 4px
+    );
+    pointer-events: none; z-index: 0;
   }
 
   /* ── Corner brackets ── */
-  .corner { position: fixed; width: 60px; height: 60px; }
-  .corner::before, .corner::after {
-    content: ''; position: absolute;
-    background: var(--emerald);
-  }
-  .corner::before { width: 2px; height: 100%; }
-  .corner::after  { width: 100%; height: 2px; }
-  .tl { top: 20px; left: 20px; }
-  .tr { top: 20px; right: 20px; transform: scaleX(-1); }
-  .bl { bottom: 20px; left: 20px; transform: scaleY(-1); }
-  .br { bottom: 20px; right: 20px; transform: scale(-1); }
+  .corner { position: fixed; width: 56px; height: 56px; }
+  .corner::before, .corner::after { content:''; position:absolute; }
+  .corner::before { width:2px; height:100%; background: linear-gradient(to bottom, var(--mag), var(--ind)); }
+  .corner::after  { width:100%; height:2px; background: linear-gradient(to right,  var(--mag), var(--ind)); }
+  .tl { top:18px; left:18px; }
+  .tr { top:18px; right:18px;  transform:scaleX(-1); }
+  .bl { bottom:18px; left:18px;  transform:scaleY(-1); }
+  .br { bottom:18px; right:18px; transform:scale(-1); }
 
   /* ── Header ── */
   header {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    padding: 14px 90px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(16,185,129,0.2);
-    background: rgba(7,21,37,0.8);
-    backdrop-filter: blur(10px);
+    position: fixed; top:0; left:0; right:0;
+    padding: 13px 90px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(168,85,247,0.25);
+    background: rgba(12,6,24,0.85);
+    backdrop-filter: blur(12px);
     z-index: 10;
   }
   .logo {
     font-family: 'Orbitron', sans-serif;
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 6px;
-    color: var(--emerald);
-    text-shadow: 0 0 20px var(--emerald-glow);
+    font-size: 22px; font-weight: 900; letter-spacing: 6px;
+    background: linear-gradient(90deg, var(--mag), var(--v1), var(--ind));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 12px var(--glow));
   }
-  .logo span { color: var(--white); font-weight: 400; }
   .status-bar {
-    display: flex; gap: 24px; align-items: center;
-    font-size: 11px; letter-spacing: 2px; color: var(--gray);
+    display: flex; gap: 22px; align-items: center;
+    font-size: 10px; letter-spacing: 2px; color: var(--gray);
     font-family: 'Orbitron', sans-serif;
   }
   .status-dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: var(--emerald);
-    box-shadow: 0 0 8px var(--emerald);
-    animation: pulse-dot 2s ease-in-out infinite;
+    background: var(--v1); box-shadow: 0 0 10px var(--v1), 0 0 20px var(--glow);
+    animation: pdot 2s ease-in-out infinite;
   }
-  @keyframes pulse-dot {
-    0%,100% { opacity: 1; } 50% { opacity: 0.3; }
-  }
+  @keyframes pdot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
   /* ── Main layout ── */
   main {
     display: grid;
-    grid-template-columns: 280px 1fr 280px;
-    gap: 24px;
-    width: 100%;
-    max-width: 1400px;
-    height: calc(100vh - 120px);
-    padding: 80px 24px 20px;
-    position: relative;
-    z-index: 1;
+    grid-template-columns: 270px 1fr 270px;
+    gap: 20px;
+    width: 100%; max-width: 1400px;
+    height: calc(100vh - 110px);
+    padding: 76px 20px 18px;
+    position: relative; z-index: 1;
   }
 
   /* ── Side panels ── */
   .panel {
-    background: var(--emerald-faint);
-    border: 1px solid rgba(16,185,129,0.2);
-    border-radius: 4px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    background: linear-gradient(160deg, rgba(124,58,237,0.08), rgba(17,8,32,0.9));
+    border: 1px solid rgba(168,85,247,0.2);
+    border-radius: 6px;
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 14px;
     overflow: hidden;
+    box-shadow: 0 0 30px rgba(124,58,237,0.08), inset 0 1px 0 rgba(232,121,249,0.1);
+    position: relative;
+  }
+  .panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--mag), var(--ind), transparent);
+    opacity: 0.6;
   }
   .panel-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--emerald);
-    border-bottom: 1px solid rgba(16,185,129,0.2);
+    font-size: 9px; letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--mag), var(--ind));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    border-bottom: 1px solid rgba(168,85,247,0.18);
     padding-bottom: 10px;
   }
-  .metric {
-    display: flex; flex-direction: column; gap: 4px;
-  }
-  .metric-label { font-size: 10px; letter-spacing: 2px; color: var(--gray); }
+  .metric { display: flex; flex-direction: column; gap: 5px; }
+  .metric-label { font-size: 9px; letter-spacing: 2px; color: var(--gray); }
   .metric-value {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 18px;
-    color: var(--emerald);
-    text-shadow: 0 0 10px var(--emerald-glow);
+    font-family: 'Orbitron', sans-serif; font-size: 16px;
+    background: linear-gradient(90deg, var(--v2), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 8px var(--glow));
   }
   .metric-bar {
-    height: 2px;
-    background: rgba(16,185,129,0.15);
-    border-radius: 1px;
-    overflow: hidden;
-    margin-top: 4px;
+    height: 2px; background: rgba(168,85,247,0.12);
+    border-radius: 1px; overflow: hidden;
   }
   .metric-fill {
     height: 100%;
-    background: var(--emerald);
-    box-shadow: 0 0 8px var(--emerald);
+    background: linear-gradient(90deg, var(--v3), var(--mag));
+    box-shadow: 0 0 8px var(--glow-mag);
     border-radius: 1px;
-    animation: fill-anim 3s ease-in-out infinite alternate;
   }
-  @keyframes fill-anim { 0% { opacity: 0.6; } 100% { opacity: 1; } }
-
   .log-entry {
-    font-size: 11px;
-    color: var(--gray);
-    letter-spacing: 1px;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(16,185,129,0.08);
+    font-size: 10px; color: rgba(167,139,202,0.7);
+    letter-spacing: 1px; padding: 5px 0;
+    border-bottom: 1px solid rgba(168,85,247,0.07);
     line-height: 1.5;
   }
-  .log-entry .ts { color: var(--emerald); margin-right: 8px; }
-  .log-entry.ok .ts { color: #34D399; }
+  .log-entry .ts { margin-right: 6px; }
+  .log-entry.ok   .ts { color: var(--ind); }
   .log-entry.warn .ts { color: var(--gold); }
+  .log-entry      .ts { color: var(--mag); }
 
-  /* ── Center: Avatar + Chat ── */
+  /* ── Center ── */
   .center {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 16px; overflow: hidden;
   }
 
-  /* ── Orbital rings ── */
+  /* ── Avatar ── */
   .avatar-wrap {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    flex-shrink: 0;
-    margin-top: 10px;
+    position: relative; width: 210px; height: 210px;
+    flex-shrink: 0; margin-top: 8px;
   }
   .ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 1px solid rgba(16,185,129,0.3);
+    position: absolute; border-radius: 50%;
     top: 50%; left: 50%;
     transform: translate(-50%,-50%);
+    border: 1px solid transparent;
   }
-  .ring-1 { width: 200px; height: 200px; animation: spin 12s linear infinite; border-color: rgba(16,185,129,0.4); }
-  .ring-2 { width: 165px; height: 165px; animation: spin 8s linear infinite reverse; }
-  .ring-3 { width: 130px; height: 130px; animation: spin 5s linear infinite; border-color: rgba(16,185,129,0.5); }
-  .ring-1::after, .ring-2::after, .ring-3::after {
+  .ring-1 {
+    width: 210px; height: 210px;
+    border-color: rgba(232,121,249,0.5);
+    box-shadow: 0 0 20px rgba(232,121,249,0.15), inset 0 0 20px rgba(232,121,249,0.05);
+    animation: spin1 14s linear infinite;
+  }
+  .ring-2 {
+    width: 172px; height: 172px;
+    border-color: rgba(129,140,248,0.4);
+    box-shadow: 0 0 15px rgba(129,140,248,0.12);
+    animation: spin1 9s linear infinite reverse;
+  }
+  .ring-3 {
+    width: 134px; height: 134px;
+    border-color: rgba(168,85,247,0.6);
+    box-shadow: 0 0 25px rgba(168,85,247,0.2);
+    animation: spin1 6s linear infinite;
+  }
+  .ring-4 {
+    width: 96px; height: 96px;
+    border-color: rgba(103,232,249,0.3);
+    animation: spin1 4s linear infinite reverse;
+  }
+
+  /* Dots on rings */
+  .ring::after {
     content: '';
-    position: absolute;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--emerald);
-    box-shadow: 0 0 10px var(--emerald), 0 0 20px var(--emerald-glow);
-    top: -3px; left: 50%; transform: translateX(-50%);
+    position: absolute; border-radius: 50%;
+    top: -4px; left: 50%; transform: translateX(-50%);
   }
-  @keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+  .ring-1::after { width:8px;height:8px; background:var(--mag); box-shadow:0 0 14px var(--mag),0 0 28px var(--glow-mag); }
+  .ring-2::after { width:6px;height:6px; background:var(--ind); box-shadow:0 0 12px var(--ind),0 0 24px var(--glow-ind); }
+  .ring-3::after { width:7px;height:7px; background:var(--v1);  box-shadow:0 0 16px var(--v1), 0 0 32px var(--glow); }
+  .ring-4::after { width:5px;height:5px; background:var(--cyan);box-shadow:0 0 10px var(--cyan); }
+
+  /* Second dots at 180° */
+  .ring-1::before,.ring-2::before,.ring-3::before {
+    content:''; position:absolute; border-radius:50%;
+    bottom:-4px; left:50%; transform:translateX(-50%);
+  }
+  .ring-1::before { width:5px;height:5px; background:var(--ind); box-shadow:0 0 10px var(--ind); }
+  .ring-2::before { width:4px;height:4px; background:var(--mag); box-shadow:0 0 8px var(--mag); }
+  .ring-3::before { width:4px;height:4px; background:var(--cyan);box-shadow:0 0 8px var(--cyan); }
+
+  @keyframes spin1 {
+    from { transform: translate(-50%,-50%) rotate(0deg); }
+    to   { transform: translate(-50%,-50%) rotate(360deg); }
+  }
 
   .core {
-    position: absolute;
-    width: 90px; height: 90px;
-    border-radius: 50%;
-    top: 50%; left: 50%;
-    transform: translate(-50%,-50%);
-    background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(6,14,28,0.8) 70%);
-    border: 1px solid rgba(16,185,129,0.5);
+    position: absolute; width: 80px; height: 80px; border-radius: 50%;
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    background: radial-gradient(circle at 40% 40%,
+      rgba(232,121,249,0.2),
+      rgba(124,58,237,0.15),
+      rgba(9,5,15,0.9) 70%);
+    border: 1px solid rgba(168,85,247,0.5);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 30px rgba(16,185,129,0.2), inset 0 0 30px rgba(16,185,129,0.05);
+    box-shadow:
+      0 0 40px rgba(168,85,247,0.25),
+      0 0 80px rgba(168,85,247,0.1),
+      inset 0 0 30px rgba(232,121,249,0.08);
   }
   .core-letter {
     font-family: 'Orbitron', sans-serif;
-    font-size: 28px;
-    font-weight: 900;
-    color: var(--emerald);
-    text-shadow: 0 0 20px var(--emerald-glow);
-    animation: core-pulse 3s ease-in-out infinite;
+    font-size: 26px; font-weight: 900;
+    background: linear-gradient(135deg, var(--mag), var(--v2), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px var(--glow));
+    animation: cpulse 3s ease-in-out infinite;
   }
-  @keyframes core-pulse {
-    0%,100% { text-shadow: 0 0 20px var(--emerald-glow); }
-    50% { text-shadow: 0 0 40px var(--emerald), 0 0 60px var(--emerald-glow); }
+  @keyframes cpulse {
+    0%,100% { filter:drop-shadow(0 0 10px var(--glow)); }
+    50%      { filter:drop-shadow(0 0 24px var(--mag)) drop-shadow(0 0 40px var(--glow)); }
   }
 
-  /* ── Waveform (active when speaking) ── */
+  /* ── Waveform ── */
   .waveform {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    height: 30px;
-    opacity: 0;
-    transition: opacity 0.3s;
+    display: flex; align-items: center; justify-content: center;
+    gap: 3px; height: 28px; opacity: 0; transition: opacity 0.3s;
   }
   .waveform.active { opacity: 1; }
   .wave-bar {
-    width: 3px;
-    background: var(--emerald);
-    border-radius: 2px;
-    box-shadow: 0 0 6px var(--emerald-glow);
-    animation: wave 0.8s ease-in-out infinite alternate;
+    width: 3px; border-radius: 2px;
+    animation: wave 0.7s ease-in-out infinite alternate;
   }
-  .wave-bar:nth-child(1)  { animation-delay: 0.0s; }
-  .wave-bar:nth-child(2)  { animation-delay: 0.1s; }
-  .wave-bar:nth-child(3)  { animation-delay: 0.2s; }
-  .wave-bar:nth-child(4)  { animation-delay: 0.3s; }
-  .wave-bar:nth-child(5)  { animation-delay: 0.2s; }
-  .wave-bar:nth-child(6)  { animation-delay: 0.1s; }
-  .wave-bar:nth-child(7)  { animation-delay: 0.0s; }
-  @keyframes wave {
-    from { height: 4px; } to { height: 24px; }
-  }
+  .wave-bar:nth-child(odd)  { background: var(--mag); box-shadow: 0 0 6px var(--mag); }
+  .wave-bar:nth-child(even) { background: var(--ind); box-shadow: 0 0 6px var(--ind); }
+  .wave-bar:nth-child(1)  { animation-delay:0.00s }
+  .wave-bar:nth-child(2)  { animation-delay:0.10s }
+  .wave-bar:nth-child(3)  { animation-delay:0.20s }
+  .wave-bar:nth-child(4)  { animation-delay:0.30s }
+  .wave-bar:nth-child(5)  { animation-delay:0.20s }
+  .wave-bar:nth-child(6)  { animation-delay:0.10s }
+  .wave-bar:nth-child(7)  { animation-delay:0.00s }
+  @keyframes wave { from{height:3px} to{height:22px} }
 
-  /* ── Chat area ── */
+  /* ── Chat ── */
   .chat-area {
-    flex: 1;
-    width: 100%;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 0 4px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(16,185,129,0.3) transparent;
+    flex:1; width:100%; overflow-y:auto;
+    display:flex; flex-direction:column; gap:10px; padding:0 4px;
+    scrollbar-width:thin; scrollbar-color:rgba(168,85,247,0.3) transparent;
   }
-  .msg {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-width: 90%;
-    animation: msg-in 0.3s ease;
-  }
-  @keyframes msg-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-  .msg.user { align-self: flex-end; align-items: flex-end; }
-  .msg.ai   { align-self: flex-start; align-items: flex-start; }
+  .msg { display:flex; flex-direction:column; gap:3px; max-width:92%; animation:min 0.3s ease; }
+  @keyframes min { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user { align-self:flex-end; align-items:flex-end; }
+  .msg.ai   { align-self:flex-start; align-items:flex-start; }
   .msg-sender {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: var(--gray);
+    font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:2px;
   }
-  .msg.ai .msg-sender { color: var(--emerald); }
+  .msg.user .msg-sender { color: var(--ind); }
+  .msg.ai   .msg-sender {
+    background: linear-gradient(90deg, var(--mag), var(--v2));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
   .msg-bubble {
-    padding: 12px 16px;
-    border-radius: 2px;
-    font-size: 14px;
-    line-height: 1.6;
-    letter-spacing: 0.5px;
+    padding:11px 15px; border-radius:3px;
+    font-size:14px; line-height:1.6; letter-spacing:0.3px;
   }
   .msg.user .msg-bubble {
-    background: rgba(16,185,129,0.1);
-    border: 1px solid rgba(16,185,129,0.3);
+    background: rgba(129,140,248,0.1);
+    border: 1px solid rgba(129,140,248,0.3);
     color: var(--white);
   }
   .msg.ai .msg-bubble {
-    background: rgba(12,26,46,0.8);
-    border: 1px solid rgba(16,185,129,0.2);
+    background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(17,8,32,0.9));
+    border: 1px solid rgba(168,85,247,0.2);
+    border-left: 2px solid var(--mag);
     color: var(--white);
-    border-left: 2px solid var(--emerald);
+    box-shadow: 0 0 20px rgba(168,85,247,0.05);
   }
 
-  /* ── Typing indicator ── */
+  /* ── Typing ── */
   .typing {
-    display: none;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 16px;
-    border-left: 2px solid var(--emerald);
-    background: rgba(12,26,46,0.8);
-    border-radius: 2px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--emerald);
-    width: fit-content;
+    display:none; align-items:center; gap:8px;
+    padding:10px 16px;
+    border-left: 2px solid var(--mag);
+    background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(17,8,32,0.9));
+    border-radius:3px;
+    font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:2px;
+    background-clip: text;
+    color: var(--v2);
+    width:fit-content;
   }
-  .typing.active { display: flex; }
+  .typing.active { display:flex; }
   .typing-dot {
-    width: 4px; height: 4px; border-radius: 50%;
-    background: var(--emerald);
-    animation: tdot 1s ease-in-out infinite;
+    width:4px; height:4px; border-radius:50%;
+    background: var(--mag); box-shadow:0 0 6px var(--mag);
+    animation:tdot 1s ease-in-out infinite;
   }
-  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes tdot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+  .typing-dot:nth-child(2){animation-delay:0.2s}
+  .typing-dot:nth-child(3){animation-delay:0.4s}
+  @keyframes tdot{0%,80%,100%{opacity:0.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}
 
-  /* ── Input area ── */
+  /* ── Input ── */
   .input-wrap {
-    width: 100%;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    border-top: 1px solid rgba(16,185,129,0.2);
-    padding-top: 16px;
-    flex-shrink: 0;
+    width:100%; display:flex; gap:10px; align-items:center;
+    border-top: 1px solid rgba(168,85,247,0.2);
+    padding-top:14px; flex-shrink:0;
   }
   .api-notice {
-    width: 100%;
-    text-align: center;
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--gold);
-    padding: 8px;
-    border: 1px solid rgba(245,158,11,0.3);
-    border-radius: 2px;
-    margin-bottom: 8px;
-    display: none;
+    width:100%; text-align:center; font-size:10px; letter-spacing:1px;
+    color:var(--gold); padding:7px;
+    border:1px solid rgba(245,158,11,0.3); border-radius:3px;
+    margin-bottom:8px; display:none;
   }
-  .api-notice.show { display: block; }
+  .api-notice.show{display:block}
   #msgInput {
-    flex: 1;
-    background: rgba(12,26,46,0.8);
-    border: 1px solid rgba(16,185,129,0.3);
-    border-radius: 2px;
-    padding: 12px 16px;
-    color: var(--white);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    letter-spacing: 0.5px;
-    outline: none;
-    transition: border-color 0.2s;
+    flex:1;
+    background: rgba(17,8,32,0.8);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius:3px; padding:12px 16px;
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif; font-size:15px; letter-spacing:0.5px;
+    outline:none; transition:border-color 0.2s, box-shadow 0.2s;
   }
-  #msgInput:focus { border-color: var(--emerald); box-shadow: 0 0 15px rgba(16,185,129,0.1); }
-  #msgInput::placeholder { color: var(--gray); }
+  #msgInput:focus {
+    border-color:var(--mag);
+    box-shadow: 0 0 20px rgba(232,121,249,0.12), 0 0 40px rgba(168,85,247,0.06);
+  }
+  #msgInput::placeholder { color:rgba(167,139,202,0.5); }
   .btn {
-    background: transparent;
-    border: 1px solid var(--emerald);
-    color: var(--emerald);
-    padding: 12px 20px;
-    border-radius: 2px;
-    cursor: pointer;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 11px;
-    letter-spacing: 2px;
-    transition: all 0.2s;
+    background:transparent;
+    border: 1px solid var(--v1); color:var(--v2);
+    padding:12px 20px; border-radius:3px; cursor:pointer;
+    font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:2px;
+    transition:all 0.2s; white-space:nowrap;
   }
-  .btn:hover { background: rgba(16,185,129,0.1); box-shadow: 0 0 15px var(--emerald-glow); }
-  .btn:active { transform: scale(0.97); }
-  .btn-mic {
-    border-color: rgba(16,185,129,0.4);
-    padding: 12px 14px;
-    font-size: 16px;
+  .btn:hover {
+    background: rgba(168,85,247,0.1);
+    box-shadow: 0 0 20px var(--glow), inset 0 0 10px rgba(168,85,247,0.05);
+    border-color:var(--mag); color:var(--mag);
   }
-  .btn-mic.listening { border-color: #F87171; color: #F87171; animation: mic-pulse 1s infinite; }
-  @keyframes mic-pulse { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 15px rgba(248,113,113,0.4)} }
+  .btn:active{transform:scale(0.97)}
+  .btn-mic { border-color:rgba(168,85,247,0.35); padding:12px 14px; font-size:16px; }
+  .btn-mic.listening { border-color:#F87171; color:#F87171; animation:mflash 1s infinite; }
+  @keyframes mflash{0%,100%{box-shadow:none}50%{box-shadow:0 0 15px rgba(248,113,113,0.4)}}
 
   /* ── Footer ── */
   footer {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    padding: 8px 90px;
-    display: flex;
-    justify-content: space-between;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: rgba(148,163,184,0.4);
-    border-top: 1px solid rgba(16,185,129,0.1);
-    z-index: 10;
+    position:fixed; bottom:0; left:0; right:0;
+    padding:7px 90px;
+    display:flex; justify-content:space-between;
+    font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:2px;
+    color:rgba(167,139,202,0.35);
+    border-top:1px solid rgba(168,85,247,0.1);
+    z-index:10;
   }
 
-  /* ── API Key modal ── */
+  /* ── Modal ── */
   .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(6,14,28,0.95);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100;
+    position:fixed; inset:0;
+    background:rgba(9,5,15,0.97);
+    display:flex; align-items:center; justify-content:center; z-index:100;
   }
   .modal {
-    background: var(--navy-card);
-    border: 1px solid rgba(16,185,129,0.4);
-    border-radius: 4px;
-    padding: 40px;
-    width: 480px;
-    display: flex; flex-direction: column; gap: 20px;
-    box-shadow: 0 0 60px rgba(16,185,129,0.15);
+    background: linear-gradient(160deg, rgba(124,58,237,0.12), rgba(17,8,32,0.98));
+    border:1px solid rgba(168,85,247,0.4);
+    border-radius:6px; padding:40px; width:480px;
+    display:flex; flex-direction:column; gap:20px;
+    box-shadow: 0 0 80px rgba(168,85,247,0.2), 0 0 160px rgba(124,58,237,0.1);
+    position:relative; overflow:hidden;
+  }
+  .modal::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--mag), var(--ind), transparent);
   }
   .modal-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 16px;
-    letter-spacing: 4px;
-    color: var(--emerald);
-    text-align: center;
+    font-family:'Orbitron',sans-serif; font-size:18px; letter-spacing:5px;
+    text-align:center;
+    background: linear-gradient(90deg, var(--mag), var(--v2), var(--ind));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 12px var(--glow));
   }
   .modal-sub {
-    font-size: 13px;
-    color: var(--gray);
-    text-align: center;
-    line-height: 1.6;
-    letter-spacing: 0.5px;
+    font-size:13px; color:var(--gray); text-align:center;
+    line-height:1.6; letter-spacing:0.5px;
   }
   .modal input {
-    background: rgba(6,14,28,0.8);
-    border: 1px solid rgba(16,185,129,0.3);
-    border-radius: 2px;
-    padding: 14px 16px;
-    color: var(--white);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 14px;
-    outline: none;
-    width: 100%;
-    letter-spacing: 1px;
+    background:rgba(9,5,15,0.8);
+    border:1px solid rgba(168,85,247,0.3); border-radius:3px;
+    padding:14px 16px; color:var(--white);
+    font-family:'Rajdhani',sans-serif; font-size:14px; outline:none; width:100%;
   }
-  .modal input:focus { border-color: var(--emerald); }
-  .modal-link {
-    font-size: 11px; color: var(--emerald);
-    text-align: center; letter-spacing: 1px;
-  }
-  .modal-link a { color: var(--gold); }
+  .modal input:focus { border-color:var(--mag); box-shadow:0 0 15px rgba(232,121,249,0.1); }
+  .modal-link { font-size:10px; color:var(--gray); text-align:center; letter-spacing:1px; }
+  .modal-link a { color:var(--gold); }
 </style>
 </head>
 <body>
 
-<!-- Corners -->
 <div class="corner tl"></div>
 <div class="corner tr"></div>
 <div class="corner bl"></div>
 <div class="corner br"></div>
 
-<!-- API Key Modal -->
+<!-- Modal API Key -->
 <div class="modal-overlay" id="apiModal">
   <div class="modal">
     <div class="modal-title">JARBAS INIT</div>
     <div class="modal-sub">Insira sua chave da API Anthropic para ativar a inteligência</div>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
     <button class="btn" onclick="initJarbas()">INICIALIZAR SISTEMA</button>
-    <div class="modal-link">
-      Obter chave em <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
-    </div>
+    <div class="modal-link">Obter chave em <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
   </div>
 </div>
 
 <header>
-  <div class="logo">JAR<span>BAS</span></div>
+  <div class="logo">JARBAS</div>
   <div class="status-bar">
     <div class="status-dot"></div>
     <span id="statusText">SISTEMA ONLINE</span>
-    <span>|</span>
+    <span style="color:rgba(167,139,202,0.3)">|</span>
     <span id="clockEl">--:--:--</span>
   </div>
 </header>
 
 <main>
-  <!-- Left panel -->
+  <!-- Painel esquerdo -->
   <div class="panel">
     <div class="panel-title">SISTEMA / STATUS</div>
     <div class="metric">
       <div class="metric-label">INTELIGÊNCIA</div>
-      <div class="metric-value">CLAUDE</div>
-      <div class="metric-bar"><div class="metric-fill" style="width:95%"></div></div>
+      <div class="metric-value">CLAUDE AI</div>
+      <div class="metric-bar"><div class="metric-fill" style="width:96%"></div></div>
     </div>
     <div class="metric">
       <div class="metric-label">MEMÓRIA ATIVA</div>
       <div class="metric-value" id="msgCount">0 MSG</div>
-      <div class="metric-bar"><div class="metric-fill" style="width:20%" id="memBar"></div></div>
+      <div class="metric-bar"><div class="metric-fill" style="width:10%" id="memBar"></div></div>
     </div>
     <div class="metric">
-      <div class="metric-label">VOZ</div>
+      <div class="metric-label">SÍNTESE DE VOZ</div>
       <div class="metric-value" id="voiceStatus">ATIVA</div>
       <div class="metric-bar"><div class="metric-fill" style="width:80%"></div></div>
     </div>
     <div class="metric">
-      <div class="metric-label">CONEXÃO</div>
-      <div class="metric-value">SEGURA</div>
+      <div class="metric-label">SEGURANÇA</div>
+      <div class="metric-value">CRIPTOGRAFADA</div>
       <div class="metric-bar"><div class="metric-fill" style="width:100%"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">OPERADOR</div>
+      <div class="metric-value" style="font-size:13px">WESLLEY RAMON</div>
     </div>
   </div>
 
-  <!-- Center -->
+  <!-- Centro -->
   <div class="center">
-    <!-- Avatar -->
     <div class="avatar-wrap">
       <div class="ring ring-1"></div>
       <div class="ring ring-2"></div>
       <div class="ring ring-3"></div>
-      <div class="core">
-        <div class="core-letter">J</div>
-      </div>
+      <div class="ring ring-4"></div>
+      <div class="core"><div class="core-letter">J</div></div>
     </div>
 
-    <!-- Waveform -->
     <div class="waveform" id="waveform">
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div>
       <div class="wave-bar"></div>
     </div>
 
-    <!-- Chat -->
     <div class="chat-area" id="chatArea">
       <div class="msg ai">
         <div class="msg-sender">JARBAS</div>
-        <div class="msg-bubble">Sistema inicializado. Olá, Weslley — estou online e pronto para operar. Como posso ajudar?</div>
+        <div class="msg-bubble">Sistemas inicializados. Olá, Weslley — estou online e operacional. Como posso ajudar?</div>
       </div>
     </div>
 
@@ -555,23 +529,22 @@
       PROCESSANDO
     </div>
 
-    <!-- Input -->
     <div style="width:100%">
-      <div class="api-notice" id="apiNotice">⚠ API KEY não configurada — insira no painel para ativar inteligência completa</div>
+      <div class="api-notice" id="apiNotice">⚠ API KEY não configurada — recarregue e insira sua chave</div>
       <div class="input-wrap">
         <button class="btn btn-mic" id="micBtn" onclick="toggleMic()" title="Microfone">🎙</button>
-        <input type="text" id="msgInput" placeholder="Digite sua mensagem para JARBAS..." onkeydown="if(event.key==='Enter')sendMsg()" />
+        <input type="text" id="msgInput" placeholder="Digite ou fale com JARBAS..." onkeydown="if(event.key==='Enter')sendMsg()"/>
         <button class="btn" onclick="sendMsg()">ENVIAR</button>
       </div>
     </div>
   </div>
 
-  <!-- Right panel -->
+  <!-- Painel direito -->
   <div class="panel">
     <div class="panel-title">LOG DE ATIVIDADE</div>
     <div id="logArea">
       <div class="log-entry ok"><span class="ts">[OK]</span>Sistema iniciado</div>
-      <div class="log-entry ok"><span class="ts">[OK]</span>Interface carregada</div>
+      <div class="log-entry ok"><span class="ts">[OK]</span>Interface holográfica carregada</div>
       <div class="log-entry ok"><span class="ts">[OK]</span>Síntese de voz ativa</div>
       <div class="log-entry"><span class="ts">[--]</span>Aguardando comando</div>
     </div>
@@ -579,7 +552,7 @@
 </main>
 
 <footer>
-  <span>JARBAS v1.0 — PONY-DIGITAL / SERVLINK</span>
+  <span>JARBAS v2.0 — PONY-DIGITAL / SERVLINK</span>
   <span id="dateEl">--/--/----</span>
 </footer>
 
@@ -591,33 +564,26 @@ let synth = window.speechSynthesis;
 let recognition = null;
 let isListening = false;
 
-// ── Clock ──────────────────────────────────────────────────
 function updateClock() {
-  const now = new Date();
-  document.getElementById('clockEl').textContent = now.toLocaleTimeString('pt-BR');
-  document.getElementById('dateEl').textContent = now.toLocaleDateString('pt-BR');
+  const n = new Date();
+  document.getElementById('clockEl').textContent = n.toLocaleTimeString('pt-BR');
+  document.getElementById('dateEl').textContent  = n.toLocaleDateString('pt-BR');
 }
 setInterval(updateClock, 1000); updateClock();
 
-// ── Init ──────────────────────────────────────────────────
 window.onload = () => {
-  if (API_KEY) {
-    document.getElementById('apiModal').style.display = 'none';
-    addLog('ok', 'API conectada');
-  }
-  setupSpeech();
+  if (API_KEY) { document.getElementById('apiModal').style.display = 'none'; addLog('ok','API conectada'); }
+  if (synth) { synth.getVoices(); } else { document.getElementById('voiceStatus').textContent = 'INATIVA'; }
 };
 
 function initJarbas() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key.startsWith('sk-')) { alert('Chave inválida'); return; }
-  API_KEY = key;
-  localStorage.setItem('jarbas_key', key);
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if (!k.startsWith('sk-')) { alert('Chave inválida'); return; }
+  API_KEY = k; localStorage.setItem('jarbas_key', k);
   document.getElementById('apiModal').style.display = 'none';
-  addLog('ok', 'API Anthropic ativa');
+  addLog('ok','API Anthropic ativada');
 }
 
-// ── Log ──────────────────────────────────────────────────
 function addLog(type, text) {
   const area = document.getElementById('logArea');
   const el = document.createElement('div');
@@ -626,155 +592,95 @@ function addLog(type, text) {
   el.innerHTML = `<span class="ts">[${ts}]</span>${text}`;
   area.appendChild(el);
   area.scrollTop = area.scrollHeight;
-  if (area.children.length > 20) area.removeChild(area.children[0]);
-}
-
-// ── Speech synthesis ──────────────────────────────────────
-function setupSpeech() {
-  if (!synth) {
-    document.getElementById('voiceStatus').textContent = 'INATIVA';
-    return;
-  }
+  if (area.children.length > 22) area.removeChild(area.children[0]);
 }
 
 function speak(text) {
   if (!synth) return;
   synth.cancel();
-  const clean = text.replace(/[*_`#]/g,'').substring(0,500);
-  const utt = new SpeechSynthesisUtterance(clean);
-  utt.lang = 'pt-BR';
-  utt.rate = 0.95; utt.pitch = 0.9;
-
-  // Try to find a Portuguese voice
-  const voices = synth.getVoices();
-  const ptVoice = voices.find(v => v.lang.startsWith('pt'));
-  if (ptVoice) utt.voice = ptVoice;
-
-  const wave = document.getElementById('waveform');
-  utt.onstart = () => wave.classList.add('active');
-  utt.onend   = () => wave.classList.remove('active');
+  const utt = new SpeechSynthesisUtterance(text.replace(/[*_`#>]/g,'').substring(0,600));
+  utt.lang = 'pt-BR'; utt.rate = 0.93; utt.pitch = 0.88;
+  const ptv = synth.getVoices().find(v => v.lang.startsWith('pt'));
+  if (ptv) utt.voice = ptv;
+  const wv = document.getElementById('waveform');
+  utt.onstart = () => wv.classList.add('active');
+  utt.onend   = () => wv.classList.remove('active');
   synth.speak(utt);
 }
 
-// ── Mic ───────────────────────────────────────────────────
 function toggleMic() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) { alert('Navegador não suporta reconhecimento de voz. Use Chrome.'); return; }
-
-  if (isListening) {
-    recognition.stop(); return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.lang = 'pt-BR';
-  recognition.interimResults = false;
-
-  recognition.onstart = () => {
-    isListening = true;
-    document.getElementById('micBtn').classList.add('listening');
-    addLog('', 'Microfone ativado');
-  };
-  recognition.onresult = (e) => {
-    const txt = e.results[0][0].transcript;
-    document.getElementById('msgInput').value = txt;
-    sendMsg();
-  };
-  recognition.onend = () => {
-    isListening = false;
-    document.getElementById('micBtn').classList.remove('listening');
-  };
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Use Chrome para reconhecimento de voz.'); return; }
+  if (isListening) { recognition.stop(); return; }
+  recognition = new SR();
+  recognition.lang = 'pt-BR'; recognition.interimResults = false;
+  recognition.onstart = () => { isListening=true; document.getElementById('micBtn').classList.add('listening'); addLog('','Microfone ativado'); };
+  recognition.onresult = e => { document.getElementById('msgInput').value = e.results[0][0].transcript; sendMsg(); };
+  recognition.onend   = () => { isListening=false; document.getElementById('micBtn').classList.remove('listening'); };
   recognition.start();
 }
 
-// ── Send message ──────────────────────────────────────────
 async function sendMsg() {
-  const input = document.getElementById('msgInput');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = '';
-
-  addMessage('user', text);
-  msgCount++;
-  updateMem();
-  addLog('', `Msg enviada (${text.length} chars)`);
+  const inp = document.getElementById('msgInput');
+  const text = inp.value.trim(); if (!text) return;
+  inp.value = '';
+  addMessage('user', text); msgCount++; updateMem();
+  addLog('','Mensagem enviada');
 
   if (!API_KEY) {
     document.getElementById('apiNotice').classList.add('show');
-    addMessage('ai', '⚠ API Key não configurada. Clique em "INICIALIZAR SISTEMA" e insira sua chave Anthropic para me conectar à inteligência completa.');
+    addMessage('ai','⚠ API Key não configurada. Recarregue a página e insira sua chave Anthropic.');
     return;
   }
-
-  showTyping(true);
-  addLog('', 'Consultando IA...');
-
-  history.push({ role: 'user', content: text });
-
+  showTyping(true); addLog('','Consultando IA...');
+  history.push({role:'user', content:text});
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
         'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: `Você é JARBAS, assistente de IA pessoal de Weslley Ramon (Pony-Digital / Servlink).
-Personalidade: inteligente, direto, confiante — como JARVIS do Homem de Ferro.
+        model:'claude-sonnet-4-6',
+        max_tokens:1024,
+        system:`Você é JARBAS, assistente de IA pessoal de Weslley Ramon (Pony-Digital / Servlink ISP).
+Personalidade: inteligente, confiante e preciso — como JARVIS do Homem de Ferro. Direto, sem enrolação.
 Contexto: Weslley trabalha com empreendedorismo digital, IA, planilhas profissionais e ISP (provedores de internet).
-Responda sempre em português, de forma clara e objetiva. Quando pertinente, use dados e seja preciso.
-Trate Weslley pelo nome ocasionalmente para personalizar.`,
+Responda sempre em português brasileiro. Use o nome Weslley ocasionalmente. Seja conciso e certeiro.`,
         messages: history
       })
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error?.message || 'Erro na API');
-    }
-
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'Erro na API'); }
     const data = await res.json();
     const reply = data.content[0].text;
-    history.push({ role: 'assistant', content: reply });
-
+    history.push({role:'assistant',content:reply});
     if (history.length > 20) history = history.slice(-20);
-
+    showTyping(false); addMessage('ai', reply); speak(reply);
+    msgCount++; updateMem(); addLog('ok','Resposta recebida');
+  } catch(e) {
     showTyping(false);
-    addMessage('ai', reply);
-    speak(reply);
-    msgCount++;
-    updateMem();
-    addLog('ok', 'Resposta recebida');
-
-  } catch (e) {
-    showTyping(false);
-    addMessage('ai', `Erro de conexão: ${e.message}`);
-    addLog('warn', `Erro: ${e.message}`);
+    addMessage('ai',`Erro de conexão: ${e.message}`);
+    addLog('warn',`Erro: ${e.message}`);
   }
 }
 
 function addMessage(role, text) {
   const area = document.getElementById('chatArea');
-  const div = document.createElement('div');
-  div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
-  div.innerHTML = `
-    <div class="msg-sender">${role === 'user' ? 'WESLLEY' : 'JARBAS'}</div>
-    <div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div>
-  `;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
+  const d = document.createElement('div');
+  d.className = `msg ${role==='user'?'user':'ai'}`;
+  d.innerHTML = `<div class="msg-sender">${role==='user'?'WESLLEY':'JARBAS'}</div>
+                 <div class="msg-bubble">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+  area.appendChild(d); area.scrollTop = area.scrollHeight;
 }
 
-function showTyping(v) {
-  document.getElementById('typing').className = v ? 'typing active' : 'typing';
-}
+function showTyping(v) { document.getElementById('typing').className = v?'typing active':'typing'; }
 
 function updateMem() {
   document.getElementById('msgCount').textContent = `${msgCount} MSG`;
-  const pct = Math.min(msgCount * 5, 100);
-  document.getElementById('memBar').style.width = pct + '%';
+  document.getElementById('memBar').style.width = Math.min(msgCount*5,100)+'%';
 }
 </script>
 </body>
