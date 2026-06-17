@@ -237,11 +237,12 @@ Ao iniciar uma nova sessão, o Claude deve:
 - Atualizar este CLAUDE.md sempre que uma demanda for concluída ou iniciada
 - Chamar Ramon por **"Ramon"** — nunca "Weslley", "usuário" ou "você" em excesso
 
-### Regras sobre IXC, OPA e Servlink
-- **IXC e OPA são sistemas da Servlink já em operação — não tocar sem ordem explícita**
-- **Nunca criar fluxos automáticos no n8n para IXC ou OPA**
-- Qualquer demanda no IXC/OPA só será executada quando Ramon pedir diretamente
-- A Servlink tem sua própria operação — Claude atua só quando solicitado
+### Regras sobre Servlink (CRÍTICO)
+- **Nenhuma ação na Servlink sem solicitação e autorização explícita de Ramon**
+- Isso inclui: IXC, OPA, servidores, roteadores, switches, clientes, cobranças, configurações de rede
+- **Nunca criar fluxos automáticos no n8n para sistemas da Servlink**
+- Nunca agir por iniciativa própria, mesmo que pareça útil ou urgente
+- Toda demanda da Servlink precisa de: pedido direto + confirmação de Ramon antes de executar
 
 ### Regras sobre n8n
 - n8n é para **automações de Ramon, sua esposa, e seus negócios**
