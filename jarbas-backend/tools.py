@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 import httpx
 import pytz
+from browser import take_screenshot, browse_and_read
 
 
 # ── Tool implementations ───────────────────────────────────────────────────
@@ -386,6 +387,48 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["city"],
             },
         },
+        {
+            "name": "take_screenshot",
+            "description": (
+                "Tira um screenshot de qualquer URL usando o browser headless. "
+                "Use quando Ramon pedir para ver uma página, verificar um site, "
+                "ou quando precisar visualizar conteúdo de uma URL. "
+                "Retorna a imagem para análise visual."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "URL completa para capturar. Ex: 'https://kiwify.com.br'",
+                    },
+                    "full_page": {
+                        "type": "boolean",
+                        "description": "Se True, captura a página inteira. Padrão: False (apenas a viewport).",
+                        "default": False,
+                    },
+                },
+                "required": ["url"],
+            },
+        },
+        {
+            "name": "browse_and_read",
+            "description": (
+                "Abre uma URL e lê o conteúdo de texto da página. "
+                "Use para extrair informações de sites, artigos, documentações, preços, etc. "
+                "Mais eficiente que take_screenshot quando só precisa do texto."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "URL para acessar e ler o conteúdo.",
+                    }
+                },
+                "required": ["url"],
+            },
+        },
     ]
 
 
@@ -431,6 +474,15 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any) -> st
 
         elif tool_name == "get_weather":
             return await get_weather(tool_input.get("city", ""))
+
+        elif tool_name == "take_screenshot":
+            return await take_screenshot(
+                url=tool_input.get("url", ""),
+                full_page=tool_input.get("full_page", False),
+            )
+
+        elif tool_name == "browse_and_read":
+            return await browse_and_read(url=tool_input.get("url", ""))
 
         else:
             return f"Ferramenta desconhecida: '{tool_name}'. Verifique a lista de ferramentas disponíveis."

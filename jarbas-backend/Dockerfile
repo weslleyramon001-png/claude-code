@@ -1,19 +1,24 @@
 FROM python:3.11-slim
 
+# System deps required by Playwright Chromium
+RUN apt-get update && apt-get install -y \
+    wget gnupg \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+    libdrm2 libxkbcommon0 libxcomposite1 \
+    libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libpango-1.0-0 \
+    libcairo2 libx11-6 libx11-xcb1 \
+    libxcb1 libxext6 libxrender1 \
+    libfontconfig1 libfreetype6 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Install dependencies first (Docker layer caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN playwright install chromium
 
-# Copy application code
 COPY . .
-
-# Create directory for SQLite DB (mount a volume here in production)
 RUN mkdir -p /data
-
-# Expose port
 EXPOSE 8000
-
-# Default command — PORT env var is overridden by Railway/cloud providers
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD sh -c "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"

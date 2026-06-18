@@ -83,6 +83,7 @@ async def run_agent(
     user_message: str,
     session_id: str,
     stream_callback=None,
+    event_callback=None,
 ) -> tuple[str, list[str]]:
     """
     Core agentic loop:
@@ -99,6 +100,7 @@ async def run_agent(
         session_id:      Conversation session identifier.
         stream_callback: Async callable(token: str) for streaming tokens to WebSocket.
                          Pass None for non-streaming (REST) mode.
+        event_callback:  Async callable(event: dict) for sending special events (e.g. screenshots).
 
     Returns:
         Tuple of (assistant_response_text, tool_calls_made_list)
@@ -200,11 +202,44 @@ async def run_agent(
 
             result = await process_tool_call(tool_name, tool_input, config)
 
-            tool_results.append({
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": result,
-            })
+            # Screenshot results: send image to UI + pass as vision to Claude
+            if isinstance(result, dict) and "base64" in result:
+                if event_callback:
+                    await event_callback({
+                        "type": "screenshot",
+                        "url": result.get("url", ""),
+                        "base64": result["base64"],
+                    })
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_block.id,
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": result["base64"],
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": f"Screenshot de {result.get('url', 'URL')} capturado. Descreva o que você vê para o Ramon.",
+                        },
+                    ],
+                })
+            elif isinstance(result, dict) and "error" in result:
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_block.id,
+                    "content": result["error"],
+                })
+            else:
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_block.id,
+                    "content": result,
+                })
 
         # Feed tool results back as a user turn
         current_messages.append({
@@ -343,9 +378,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     WebSocket endpoint for real-time streaming.
 
     Client sends:  {"message": "texto do usuário"}
-    Server emits:  {"type": "token",  "content": "..."}  — one per streamed token
-                   {"type": "done",   "full_response": "...", "tool_calls": [...]}
-                   {"type": "error",  "message": "..."}
+    Server emits:  {"type": "token",      "content": "..."}         — one per streamed token
+                   {"type": "screenshot", "url": "...", "base64": "..."} — browser screenshot
+                   {"type": "done",       "full_response": "...", "tool_calls": [...]}
+                   {"type": "error",      "message": "..."}
     """
     await websocket.accept()
 
@@ -379,11 +415,15 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             async def stream_token(token: str):
                 await websocket.send_json({"type": "token", "content": token})
 
+            async def send_event(event: dict):
+                await websocket.send_json(event)
+
             try:
                 full_response, tool_calls = await run_agent(
                     user_message=user_message,
                     session_id=session_id,
                     stream_callback=stream_token,
+                    event_callback=send_event,
                 )
                 await websocket.send_json({
                     "type": "done",

@@ -873,7 +873,7 @@
       justify-content: center;
       font-size: 32px;
     }
-    #voice-ring::after { content: "🎙️"; }
+    #voice-ring::after { content: "\1F399"; }
 
     @keyframes voice-pulse {
       0%   { box-shadow: 0 0 0 0 rgba(168,85,247,0.6); }
@@ -1229,6 +1229,9 @@
         scrollToBottom();
       }
 
+    } else if (data.type === 'screenshot') {
+      addScreenshotMessage(data.url, data.base64);
+
     } else if (data.type === 'done') {
       // Stream complete
       isStreaming = false;
@@ -1243,7 +1246,7 @@
           data.tool_calls.forEach(tool => {
             const badge = document.createElement('span');
             badge.className = 'tool-badge';
-            badge.textContent = `&#9881; ${formatToolName(tool)}`;
+            badge.textContent = `⚙ ${formatToolName(tool)}`;
             badges.appendChild(badge);
           });
           currentStreamBubble.appendChild(badges);
@@ -1298,6 +1301,21 @@
       appendMessage('assistant', `**Erro:** ${data.message}`, [], true);
       scrollToBottom();
     }
+  }
+
+  // ── Screenshot rendering ─────────────────────────────────────────────
+  function addScreenshotMessage(url, base64) {
+    const chatMessages = document.getElementById('chat-area');
+    const div = document.createElement('div');
+    div.className = 'message assistant-message screenshot-message';
+    div.innerHTML = `
+        <div class="screenshot-container">
+            <div class="screenshot-label">&#128248; Screenshot: <a href="${url}" target="_blank">${url}</a></div>
+            <img src="data:image/png;base64,${base64}" alt="Screenshot de ${url}" style="max-width:100%;border-radius:8px;margin-top:8px;border:1px solid rgba(139,92,246,0.3);" />
+        </div>
+    `;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
   // ── Sending messages ─────────────────────────────────────────────────
@@ -1560,6 +1578,8 @@
       create_file_content: 'Criar Arquivo',
       generate_pony_digital_content: 'Pony-Digital',
       get_weather: 'Clima',
+      take_screenshot: 'Screenshot',
+      browse_and_read: 'Navegar',
     };
     return names[name] || name;
   }
@@ -1604,7 +1624,7 @@
   function startVoiceMode() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      alert('Seu navegador não suporta reconhecimento de voz.\nUse Chrome ou Edge.');
+      alert('Seu navegador nao suporta reconhecimento de voz.\nUse Chrome ou Edge.');
       return;
     }
     voiceMode = true;
@@ -1667,7 +1687,7 @@
     document.getElementById('voice-transcript').textContent = `"${text}"`;
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setVoiceStatus('Sem conexão com JARBAS');
+      setVoiceStatus('Sem conexao com JARBAS');
       setTimeout(() => {
         voiceProcessing = false;
         voiceAutoRestart = true;
