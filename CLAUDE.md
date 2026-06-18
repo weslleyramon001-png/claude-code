@@ -1,7 +1,7 @@
 # CLAUDE.md — Contexto Permanente: Projeto Pony-Digital
 
 > Este arquivo é carregado automaticamente em toda sessão do Claude Code.
-> Última atualização: 2026-06-17 (atualizado enquanto Weslley dormia)
+> Última atualização: 2026-06-18 (JARBAS ativado no Railway)
 
 ---
 
@@ -109,6 +109,14 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
   - Web Speech API (STT gratuito, nativo do Chrome)
   - ElevenLabs TTS (voz Mateus PT-BR) com fallback para voz do browser
   - Loop automático: ouve → processa → fala → ouve
+- [x] JARBAS Deploy Railway — ONLINE 24/7 (18/06/2026)
+  - URL: https://claude-code-production-62f5.up.railway.app
+  - Anthropic + ElevenLabs + Tavily configurados e funcionando
+  - railway.toml corrigido: startCommand usa sh para expandir $PORT
+- [x] JARBAS UI conectado ao Railway — wsUrl padrão aponta para Railway (18/06/2026)
+- [x] Tavily API Key configurada — pesquisa web em tempo real ativa (18/06/2026)
+- [x] Todas as chaves salvas no Drive — "JARBAS — Chaves de API (CONFIDENCIAL)" (18/06/2026)
+- [x] Obsidian atualizado — JARBAS-Status + nota de retomada em 06-Tecnologia-IA (18/06/2026)
 
 ---
 
@@ -197,8 +205,8 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 
 ## 🔄 Demandas em Andamento / Próximos Passos
 
-- [ ] JARBAS — ativar com keys (Railway + Anthropic + ElevenLabs)
-- [ ] JARBAS — testar Voice Mode após deploy
+- [x] JARBAS — ativado com keys (Railway + Anthropic + ElevenLabs + Tavily) — 18/06/2026
+- [x] JARBAS — Voice Mode testado (funcional, voz levemente robótica — melhora com clone JARVIS)
 - [ ] Tailscale — instalar no Windows do Ramon + gerar auth key
 - [ ] Publicar pack de planilhas no Kiwify (checklist pronto)
 - [ ] Configurar MailerLite com os 7 emails (emails prontos)
