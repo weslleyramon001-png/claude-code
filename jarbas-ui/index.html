@@ -972,7 +972,7 @@
 
     <div class="field">
       <label>Backend URL (WebSocket)</label>
-      <input type="text" id="ws-url-input" placeholder="ws://localhost:8000/ws/default" />
+      <input type="text" id="ws-url-input" placeholder="wss://claude-code-production-62f5.up.railway.app/ws/default" />
     </div>
 
     <div class="field">
@@ -1079,7 +1079,7 @@
 <script>
   // ── State ────────────────────────────────────────────────────────────
   let ws = null;
-  let wsUrl = localStorage.getItem('jarbas_ws_url') || 'ws://localhost:8000/ws/default';
+  let wsUrl = localStorage.getItem('jarbas_ws_url') || 'wss://claude-code-production-62f5.up.railway.app/ws/default';
   let sessionId = localStorage.getItem('jarbas_session_id') || 'default';
   let voiceEnabled = localStorage.getItem('jarbas_voice') === 'true';
   let typewriterEnabled = localStorage.getItem('jarbas_typewriter') !== 'false';
