@@ -14,75 +14,37 @@ import pytz
 from browser import take_screenshot, browse_and_read
 
 
-# ── Tool implementations ───────────────────────────────────────────────────
+# ── Tool implementations ─────────────────────────────────────────────────
 
 async def get_current_datetime() -> str:
-    """
-    Return the current date and time in Brazilian format (America/Sao_Paulo timezone).
-    """
     tz = pytz.timezone("America/Sao_Paulo")
     now = datetime.now(tz)
-
-    # Brazilian weekday names
     weekdays = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
     months = [
         "janeiro", "fevereiro", "março", "abril", "maio", "junho",
         "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
     ]
-
-    weekday = weekdays[now.weekday()]
-    month = months[now.month - 1]
-
     return (
-        f"{weekday}, {now.day} de {month} de {now.year} — "
+        f"{weekdays[now.weekday()]}, {now.day} de {months[now.month - 1]} de {now.year} — "
         f"{now.strftime('%H:%M')} (horário de Brasília)"
     )
 
 
 async def calculate(expression: str) -> str:
-    """
-    Safely evaluate a mathematical expression and return the result.
-
-    Supports: +, -, *, /, **, %, sqrt(), abs(), round(), floor(), ceil(),
-              log(), log10(), sin(), cos(), tan(), pi, e
-
-    Args:
-        expression: Math expression as a string, e.g. "2 ** 10 + sqrt(144)"
-
-    Returns:
-        Result string or error message.
-    """
-    # Whitelist: only allow safe characters for math
     safe_pattern = re.compile(r'^[\d\s\+\-\*/\(\)\.\,\%\*\^a-z_]+$', re.IGNORECASE)
     if not safe_pattern.match(expression):
         return "Expressão inválida. Apenas operações matemáticas são permitidas."
 
-    # Build a restricted namespace with math functions
     safe_names: dict[str, Any] = {
-        "sqrt": math.sqrt,
-        "abs": abs,
-        "round": round,
-        "floor": math.floor,
-        "ceil": math.ceil,
-        "log": math.log,
-        "log10": math.log10,
-        "log2": math.log2,
-        "sin": math.sin,
-        "cos": math.cos,
-        "tan": math.tan,
-        "pi": math.pi,
-        "e": math.e,
-        "pow": pow,
-        "max": max,
-        "min": min,
+        "sqrt": math.sqrt, "abs": abs, "round": round,
+        "floor": math.floor, "ceil": math.ceil,
+        "log": math.log, "log10": math.log10, "log2": math.log2,
+        "sin": math.sin, "cos": math.cos, "tan": math.tan,
+        "pi": math.pi, "e": math.e, "pow": pow, "max": max, "min": min,
     }
-
     try:
-        # Replace ^ with ** for convenience
         expr_clean = expression.replace("^", "**").replace(",", ".")
         result = eval(expr_clean, {"__builtins__": {}}, safe_names)  # noqa: S307
-
-        # Format nicely
         if isinstance(result, float):
             if result == int(result):
                 return str(int(result))
@@ -95,37 +57,18 @@ async def calculate(expression: str) -> str:
 
 
 async def web_search(query: str, api_key: str) -> str:
-    """
-    Search the web via the Tavily API and return formatted results.
-
-    Args:
-        query:   Search query string.
-        api_key: Tavily API key.
-
-    Returns:
-        Formatted string with search results, or error/placeholder message.
-    """
     if not api_key:
         return (
             "Busca na web indisponível — chave da API Tavily não configurada. "
             "Adicione TAVILY_API_KEY no arquivo .env para habilitar esta função."
         )
-
     payload = {
-        "api_key": api_key,
-        "query": query,
-        "search_depth": "basic",
-        "include_answer": True,
-        "include_raw_content": False,
-        "max_results": 5,
+        "api_key": api_key, "query": query, "search_depth": "basic",
+        "include_answer": True, "include_raw_content": False, "max_results": 5,
     }
-
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(
-                "https://api.tavily.com/search",
-                json=payload,
-            )
+            response = await client.post("https://api.tavily.com/search", json=payload)
             response.raise_for_status()
             data = response.json()
     except httpx.TimeoutException:
@@ -138,16 +81,12 @@ async def web_search(query: str, api_key: str) -> str:
         return f"Erro inesperado na busca: {exc}"
 
     lines: list[str] = []
-
-    # Include the AI-generated answer if available
     answer = data.get("answer", "").strip()
     if answer:
         lines.append(f"**Resposta direta:** {answer}\n")
-
     results = data.get("results", [])
     if not results:
         return "Nenhum resultado encontrado para essa busca."
-
     lines.append("**Fontes:**")
     for i, r in enumerate(results[:5], 1):
         title = r.get("title", "Sem título")
@@ -159,24 +98,10 @@ async def web_search(query: str, api_key: str) -> str:
         if url:
             lines.append(f"   {url}")
         lines.append("")
-
     return "\n".join(lines).strip()
 
 
 async def create_file_content(filename: str, content: str, file_type: str = "text") -> str:
-    """
-    Format content as a 'file' to be shown to the user.
-    JARBAS doesn't write to disk directly — it returns structured content
-    that the UI can offer as a download.
-
-    Args:
-        filename:  Suggested filename.
-        content:   File content.
-        file_type: Hint for syntax highlighting (python, markdown, json, etc.)
-
-    Returns:
-        Formatted string the UI can render as a downloadable code block.
-    """
     lang = file_type.lower().strip()
     return (
         f"**Arquivo: `{filename}`**\n\n"
@@ -186,16 +111,6 @@ async def create_file_content(filename: str, content: str, file_type: str = "tex
 
 
 async def generate_pony_digital_content(content_type: str, topic: str) -> str:
-    """
-    Generate Pony-Digital specific content for Instagram or sales copy.
-
-    Args:
-        content_type: One of: hook, caption, email, cta, headline
-        topic:        The subject of the content (e.g. "planilhas", "produtividade", "finanças")
-
-    Returns:
-        Generated content ready to use.
-    """
     templates = {
         "hook": [
             f"Se você ainda não controla seu {topic}, você está deixando dinheiro na mesa.",
@@ -213,13 +128,11 @@ async def generate_pony_digital_content(content_type: str, topic: str) -> str:
         ),
         "email": (
             f"Assunto: Sobre o seu {topic}...\n\n"
-            f"Olá,\n\n"
-            f"Quero falar sobre {topic} de uma forma diferente hoje.\n\n"
+            f"Olá,\n\nQuero falar sobre {topic} de uma forma diferente hoje.\n\n"
             f"A maioria das pessoas só pensa nisso quando o problema já explodiu.\n\n"
             f"Mas os empreendedores que realmente crescem tratam {topic} como prioridade desde o dia 1.\n\n"
             f"É por isso que criei a planilha de {topic} — para você ter controle total, sem complicação.\n\n"
-            f"Clique aqui para ver: [LINK]\n\n"
-            f"Até mais,\nRamon"
+            f"Clique aqui para ver: [LINK]\n\nAté mais,\nRamon"
         ),
         "cta": [
             f"👉 Baixe a planilha de {topic} — link na bio",
@@ -234,14 +147,9 @@ async def generate_pony_digital_content(content_type: str, topic: str) -> str:
             f"Domine seu {topic.title()} com Esta Planilha Profissional",
         ],
     }
-
     ct = content_type.lower().strip()
     if ct not in templates:
-        return (
-            f"Tipo de conteúdo '{content_type}' não reconhecido. "
-            f"Use: hook, caption, email, cta, ou headline."
-        )
-
+        return f"Tipo '{content_type}' não reconhecido. Use: hook, caption, email, cta, ou headline."
     result = templates[ct]
     if isinstance(result, list):
         import random
@@ -251,29 +159,85 @@ async def generate_pony_digital_content(content_type: str, topic: str) -> str:
 
 async def get_weather(city: str) -> str:
     """
-    Placeholder weather function.
-    Returns a polite message explaining no weather API key is configured.
-
-    Args:
-        city: City name requested by the user.
-
-    Returns:
-        Polite unavailability message.
+    Get real weather data using Open-Meteo API (free, no API key required).
+    Uses geocoding to find coordinates, then fetches current + daily forecast.
     """
-    return (
-        f"Previsão do tempo para {city} está indisponível no momento. "
-        "A integração com API de clima ainda não foi configurada. "
-        "Você pode conferir manualmente em tempo.ig.com.br ou weather.com."
-    )
+    WMO_CODES = {
+        0: "Céu limpo ☀️",
+        1: "Principalmente limpo 🌤️", 2: "Parcialmente nublado ⛅", 3: "Nublado ☁️",
+        45: "Névoa 🌫️", 48: "Névoa com gelo 🌫️",
+        51: "Garoa leve 🌦️", 53: "Garoa moderada 🌦️", 55: "Garoa densa 🌧️",
+        61: "Chuva fraca 🌧️", 63: "Chuva moderada 🌧️", 65: "Chuva forte 🌧️",
+        71: "Neve fraca ❄️", 73: "Neve moderada ❄️", 75: "Neve forte ❄️",
+        80: "Pancadas leves 🌦️", 81: "Pancadas moderadas ⛈️", 82: "Pancadas fortes ⛈️",
+        95: "Tempestade ⚡", 96: "Tempestade com granizo ⚡", 99: "Tempestade forte com granizo ⚡",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Step 1: geocoding
+            geo_resp = await client.get(
+                "https://geocoding-api.open-meteo.com/v1/search",
+                params={"name": city, "count": 1, "language": "pt", "format": "json"},
+            )
+            geo_resp.raise_for_status()
+            geo_data = geo_resp.json()
+
+            results = geo_data.get("results", [])
+            if not results:
+                return f"Cidade '{city}' não encontrada. Verifique o nome e tente novamente."
+
+            loc = results[0]
+            lat, lon = loc["latitude"], loc["longitude"]
+            city_name = loc.get("name", city)
+            country = loc.get("country", "")
+
+            # Step 2: weather forecast
+            wx_resp = await client.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "current_weather": True,
+                    "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
+                    "timezone": "America/Sao_Paulo",
+                    "forecast_days": 1,
+                },
+            )
+            wx_resp.raise_for_status()
+            wx = wx_resp.json()
+
+        current = wx.get("current_weather", {})
+        daily = wx.get("daily", {})
+
+        temp_c = current.get("temperature", "?")
+        wind_kmh = round(current.get("windspeed", 0))
+        wmo = current.get("weathercode", 0)
+        condition = WMO_CODES.get(wmo, f"Código {wmo}")
+
+        tmax = daily.get("temperature_2m_max", [None])[0]
+        tmin = daily.get("temperature_2m_min", [None])[0]
+        precip = daily.get("precipitation_sum", [0])[0] or 0
+
+        lines = [
+            f"📍 **{city_name}, {country}**",
+            f"🌡️ Temperatura atual: **{temp_c}°C** (máx {tmax}°C / mín {tmin}°C)",
+            f"🌤️ Condição: {condition}",
+            f"💧 Precipitação: {precip} mm",
+            f"💨 Vento: {wind_kmh} km/h",
+            f"\n*Fonte: Open-Meteo (dados em tempo real)*",
+        ]
+        return "\n".join(lines)
+
+    except httpx.TimeoutException:
+        return f"Timeout ao buscar clima para {city}. Tente novamente."
+    except Exception as exc:
+        return f"Erro ao buscar clima: {exc}"
 
 
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
-    """
-    Return the tools list in Claude API format (to pass as the `tools` parameter).
-    Each tool maps to an async function above.
-    """
     return [
         {
             "name": "get_current_datetime",
@@ -281,27 +245,19 @@ def format_tools_for_claude() -> list[dict]:
                 "Retorna a data e hora atual no fuso horário de Brasília. "
                 "Use quando o usuário perguntar que horas são, qual é a data de hoje, etc."
             ),
-            "input_schema": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
+            "input_schema": {"type": "object", "properties": {}, "required": []},
         },
         {
             "name": "calculate",
             "description": (
                 "Calcula expressões matemáticas com segurança. "
-                "Suporta operações básicas (+, -, *, /), potenciação (**), raiz quadrada (sqrt), "
-                "logaritmos, funções trigonométricas, e constantes pi e e. "
-                "Use para qualquer cálculo numérico solicitado pelo usuário."
+                "Suporta operações básicas (+, -, *, /), potência (**), raiz quadrada (sqrt), "
+                "logarítmos, funções trigonométricas e constantes pi e e."
             ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "expression": {
-                        "type": "string",
-                        "description": "A expressão matemática a ser calculada. Ex: '2 ** 10', 'sqrt(144) + 5 * 3'",
-                    }
+                    "expression": {"type": "string", "description": "Expressão matemática. Ex: '2 ** 10', 'sqrt(144) + 5 * 3'"}
                 },
                 "required": ["expression"],
             },
@@ -310,16 +266,12 @@ def format_tools_for_claude() -> list[dict]:
             "name": "web_search",
             "description": (
                 "Busca informações atualizadas na internet via Tavily. "
-                "Use quando o usuário precisar de informações recentes, notícias, preços, "
-                "tendências de mercado, ou qualquer dado que pode ter mudado após seu treinamento."
+                "Use para notícias recentes, preços, tendências de mercado, ou qualquer dado atual."
             ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "A consulta de busca em linguagem natural. Seja específico para melhores resultados.",
-                    }
+                    "query": {"type": "string", "description": "Consulta de busca em linguagem natural."}
                 },
                 "required": ["query"],
             },
@@ -327,25 +279,15 @@ def format_tools_for_claude() -> list[dict]:
         {
             "name": "create_file_content",
             "description": (
-                "Gera conteúdo formatado como um arquivo para o usuário baixar ou copiar. "
-                "Use quando o usuário pedir para criar um script, documento, template ou qualquer arquivo."
+                "Gera conteúdo formatado como arquivo para o usuário baixar ou copiar. "
+                "Use quando pedirem para criar scripts, documentos, templates, etc."
             ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "filename": {
-                        "type": "string",
-                        "description": "Nome sugerido para o arquivo, incluindo extensão. Ex: 'email_boas_vindas.txt'",
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "Conteúdo completo do arquivo.",
-                    },
-                    "file_type": {
-                        "type": "string",
-                        "description": "Tipo do arquivo para syntax highlight: python, markdown, json, html, text, etc.",
-                        "default": "text",
-                    },
+                    "filename": {"type": "string", "description": "Nome do arquivo com extensão."},
+                    "content": {"type": "string", "description": "Conteúdo completo do arquivo."},
+                    "file_type": {"type": "string", "description": "Tipo para syntax highlight: python, markdown, json, etc.", "default": "text"},
                 },
                 "required": ["filename", "content"],
             },
@@ -354,35 +296,28 @@ def format_tools_for_claude() -> list[dict]:
             "name": "generate_pony_digital_content",
             "description": (
                 "Gera conteúdo de marketing para o negócio Pony-Digital de Ramon: "
-                "hooks para Instagram, captions, emails de vendas, CTAs e headlines. "
-                "Use quando Ramon pedir para criar conteúdo, post, email ou copy relacionado ao negócio dele."
+                "hooks para Instagram, captions, emails de vendas, CTAs e headlines."
             ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "content_type": {
-                        "type": "string",
-                        "description": "Tipo de conteúdo: hook, caption, email, cta, ou headline",
-                        "enum": ["hook", "caption", "email", "cta", "headline"],
-                    },
-                    "topic": {
-                        "type": "string",
-                        "description": "Tema do conteúdo. Ex: 'planilhas', 'finanças', 'produtividade', 'negócios digitais'",
-                    },
+                    "content_type": {"type": "string", "description": "Tipo: hook, caption, email, cta, ou headline", "enum": ["hook", "caption", "email", "cta", "headline"]},
+                    "topic": {"type": "string", "description": "Tema. Ex: 'planilhas', 'finanças', 'produtividade'"},
                 },
                 "required": ["content_type", "topic"],
             },
         },
         {
             "name": "get_weather",
-            "description": "Consulta a previsão do tempo para uma cidade. (Placeholder — requer configuração de API)",
+            "description": (
+                "Consulta a previsão do tempo em tempo real para qualquer cidade. "
+                "Retorna temperatura atual, máxima, mínima, condição e vento. "
+                "Use sempre que Ramon perguntar sobre o clima ou tempo."
+            ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "city": {
-                        "type": "string",
-                        "description": "Nome da cidade. Ex: 'São Paulo', 'Rio de Janeiro'",
-                    }
+                    "city": {"type": "string", "description": "Nome da cidade. Ex: 'São Paulo', 'Rio de Janeiro', 'Belo Horizonte'"}
                 },
                 "required": ["city"],
             },
@@ -392,21 +327,13 @@ def format_tools_for_claude() -> list[dict]:
             "description": (
                 "Tira um screenshot de qualquer URL usando o browser headless. "
                 "Use quando Ramon pedir para ver uma página, verificar um site, "
-                "ou quando precisar visualizar conteúdo de uma URL. "
-                "Retorna a imagem para análise visual."
+                "ou quando precisar visualizar conteúdo de uma URL."
             ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "url": {
-                        "type": "string",
-                        "description": "URL completa para capturar. Ex: 'https://kiwify.com.br'",
-                    },
-                    "full_page": {
-                        "type": "boolean",
-                        "description": "Se True, captura a página inteira. Padrão: False (apenas a viewport).",
-                        "default": False,
-                    },
+                    "url": {"type": "string", "description": "URL completa para capturar. Ex: 'https://kiwify.com.br'"},
+                    "full_page": {"type": "boolean", "description": "Se True, captura a página inteira.", "default": False},
                 },
                 "required": ["url"],
             },
@@ -415,16 +342,12 @@ def format_tools_for_claude() -> list[dict]:
             "name": "browse_and_read",
             "description": (
                 "Abre uma URL e lê o conteúdo de texto da página. "
-                "Use para extrair informações de sites, artigos, documentações, preços, etc. "
-                "Mais eficiente que take_screenshot quando só precisa do texto."
+                "Use para extrair informações de sites, artigos, preços, etc."
             ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "url": {
-                        "type": "string",
-                        "description": "URL para acessar e ler o conteúdo.",
-                    }
+                    "url": {"type": "string", "description": "URL para acessar e ler."}
                 },
                 "required": ["url"],
             },
@@ -432,60 +355,37 @@ def format_tools_for_claude() -> list[dict]:
     ]
 
 
-# ── Tool dispatcher ────────────────────────────────────────────────────────
+# ── Tool dispatcher ──────────────────────────────────────────────────────
 
-async def process_tool_call(tool_name: str, tool_input: dict, config: Any) -> str:
-    """
-    Dispatch a tool_use request from Claude to the appropriate async function.
-
-    Args:
-        tool_name:  Name of the tool as returned by Claude's tool_use block.
-        tool_input: Dict of arguments from the tool_use block.
-        config:     App config instance (for API keys).
-
-    Returns:
-        String result to send back as a tool_result message.
-    """
+async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
     try:
         if tool_name == "get_current_datetime":
             return await get_current_datetime()
-
         elif tool_name == "calculate":
             return await calculate(tool_input.get("expression", ""))
-
         elif tool_name == "web_search":
-            return await web_search(
-                query=tool_input.get("query", ""),
-                api_key=config.TAVILY_API_KEY,
-            )
-
+            return await web_search(query=tool_input.get("query", ""), api_key=config.TAVILY_API_KEY)
         elif tool_name == "create_file_content":
             return await create_file_content(
                 filename=tool_input.get("filename", "arquivo.txt"),
                 content=tool_input.get("content", ""),
                 file_type=tool_input.get("file_type", "text"),
             )
-
         elif tool_name == "generate_pony_digital_content":
             return await generate_pony_digital_content(
                 content_type=tool_input.get("content_type", "caption"),
                 topic=tool_input.get("topic", "negócios digitais"),
             )
-
         elif tool_name == "get_weather":
             return await get_weather(tool_input.get("city", ""))
-
         elif tool_name == "take_screenshot":
             return await take_screenshot(
                 url=tool_input.get("url", ""),
                 full_page=tool_input.get("full_page", False),
             )
-
         elif tool_name == "browse_and_read":
             return await browse_and_read(url=tool_input.get("url", ""))
-
         else:
-            return f"Ferramenta desconhecida: '{tool_name}'. Verifique a lista de ferramentas disponíveis."
-
+            return f"Ferramenta desconhecida: '{tool_name}'."
     except Exception as exc:
         return f"Erro ao executar '{tool_name}': {exc}"
