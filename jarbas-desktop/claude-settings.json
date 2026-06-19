@@ -1,50 +1,78 @@
 {
   "mcpServers": {
+
     "filesystem": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "C:\\",
-        "D:\\"
-      ],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\", "D:\\"],
       "type": "stdio"
     },
-    "playwright": {
+
+    "playwright-chrome": {
       "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--browser",
-        "chrome",
-        "--headless"
-      ],
+      "args": ["@playwright/mcp@latest", "--browser", "chrome", "--headless"],
       "type": "stdio"
     },
-    "playwright-visible": {
+
+    "playwright-chrome-visible": {
       "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--browser",
-        "chrome"
-      ],
+      "args": ["@playwright/mcp@latest", "--browser", "chrome"],
       "type": "stdio"
     },
+
+    "playwright-firefox": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--browser", "firefox", "--headless"],
+      "type": "stdio"
+    },
+
+    "playwright-firefox-visible": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--browser", "firefox"],
+      "type": "stdio"
+    },
+
+    "playwright-webkit": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--browser", "webkit", "--headless"],
+      "type": "stdio"
+    },
+
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "type": "stdio"
+    },
+
     "memory": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory"
-      ],
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
       "type": "stdio"
     },
+
     "fetch": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-fetch"
-      ],
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "type": "stdio"
+    },
+
+    "sqlite": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "C:\\jarbas\\jarbas.db"],
+      "type": "stdio"
+    },
+
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "C:\\"],
+      "type": "stdio"
+    },
+
+    "sequentialthinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
       "type": "stdio"
     }
+
   },
   "permissions": {
     "allow": [
@@ -55,10 +83,17 @@
       "Glob(*)",
       "Grep(*)",
       "mcp__filesystem__*",
-      "mcp__playwright__*",
-      "mcp__playwright-visible__*",
+      "mcp__playwright-chrome__*",
+      "mcp__playwright-chrome-visible__*",
+      "mcp__playwright-firefox__*",
+      "mcp__playwright-firefox-visible__*",
+      "mcp__playwright-webkit__*",
+      "mcp__puppeteer__*",
       "mcp__memory__*",
-      "mcp__fetch__*"
+      "mcp__fetch__*",
+      "mcp__sqlite__*",
+      "mcp__git__*",
+      "mcp__sequentialthinking__*"
     ]
   }
 }
