@@ -6,11 +6,15 @@ Each tool has a corresponding entry in the Claude tools list format.
 """
 
 import math
+import os
 import re
+import subprocess
+import platform
 from datetime import datetime
 from typing import Any
 import httpx
 import pytz
+import psutil
 from browser import take_screenshot, browse_and_read
 
 
@@ -155,6 +159,76 @@ async def generate_pony_digital_content(content_type: str, topic: str) -> str:
         import random
         return f"**{content_type.upper()} para '{topic}':**\n\n" + "\n\n—\n\n".join(result)
     return f"**{content_type.upper()} para '{topic}':**\n\n{result}"
+
+
+async def system_info() -> str:
+    cpu = psutil.cpu_percent(interval=1)
+    ram = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
+    boot = datetime.fromtimestamp(psutil.boot_time()).strftime("%d/%m/%Y %H:%M")
+    lines = [
+        f"🖥️ **Sistema: {platform.system()} {platform.release()}**",
+        f"⚙️ CPU: **{cpu}%** em uso",
+        f"🧠 RAM: **{ram.percent}%** em uso ({round(ram.used / 1e9, 1)} GB / {round(ram.total / 1e9, 1)} GB)",
+        f"💾 Disco: **{disk.percent}%** em uso ({round(disk.used / 1e9, 1)} GB / {round(disk.total / 1e9, 1)} GB)",
+        f"⏱️ Ligado desde: {boot}",
+    ]
+    return "\n".join(lines)
+
+
+async def run_command(command: str, timeout: int = 30) -> str:
+    try:
+        result = subprocess.run(
+            command, shell=True, capture_output=True, text=True, timeout=timeout
+        )
+        output = (result.stdout or result.stderr or "").strip()
+        return output or "Comando executado sem output."
+    except subprocess.TimeoutExpired:
+        return f"Timeout após {timeout}s."
+    except Exception as exc:
+        return f"Erro: {exc}"
+
+
+async def list_files(path: str) -> str:
+    try:
+        entries = os.listdir(path)
+        if not entries:
+            return f"Pasta `{path}` está vazia."
+        lines = [f"📁 **{path}** ({len(entries)} itens)\n"]
+        for e in sorted(entries):
+            full = os.path.join(path, e)
+            icon = "📁" if os.path.isdir(full) else "📄"
+            lines.append(f"{icon} {e}")
+        return "\n".join(lines)
+    except FileNotFoundError:
+        return f"Pasta não encontrada: `{path}`"
+    except PermissionError:
+        return f"Sem permissão para acessar: `{path}`"
+
+
+async def read_file(path: str) -> str:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return f"📄 **{path}**\n\n```\n{content}\n```"
+    except FileNotFoundError:
+        return f"Arquivo não encontrado: `{path}`"
+    except PermissionError:
+        return f"Sem permissão para ler: `{path}`"
+    except Exception as exc:
+        return f"Erro ao ler arquivo: {exc}"
+
+
+async def write_file(path: str, content: str) -> str:
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True) if os.path.dirname(path) else None
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        return f"✅ Arquivo salvo em `{path}`"
+    except PermissionError:
+        return f"Sem permissão para escrever em: `{path}`"
+    except Exception as exc:
+        return f"Erro ao salvar arquivo: {exc}"
 
 
 async def get_weather(city: str) -> str:
@@ -323,6 +397,57 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
+            "name": "system_info",
+            "description": "Retorna informações do servidor em tempo real: CPU, RAM, disco e tempo ligado. Use quando Ramon perguntar sobre o status do servidor ou recursos.",
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "run_command",
+            "description": "Executa um comando de terminal no servidor Linux. Use para operações de sistema, instalar pacotes, verificar processos, etc.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "Comando shell a executar."},
+                    "timeout": {"type": "integer", "description": "Timeout em segundos (padrão: 30).", "default": 30},
+                },
+                "required": ["command"],
+            },
+        },
+        {
+            "name": "list_files",
+            "description": "Lista os arquivos e pastas de um diretório no servidor.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Caminho do diretório. Ex: '/app', '/data'"}
+                },
+                "required": ["path"],
+            },
+        },
+        {
+            "name": "read_file",
+            "description": "Lê e retorna o conteúdo de um arquivo no servidor.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Caminho completo do arquivo."}
+                },
+                "required": ["path"],
+            },
+        },
+        {
+            "name": "write_file",
+            "description": "Cria ou sobrescreve um arquivo no servidor com o conteúdo fornecido.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Caminho completo do arquivo."},
+                    "content": {"type": "string", "description": "Conteúdo a escrever no arquivo."},
+                },
+                "required": ["path", "content"],
+            },
+        },
+        {
             "name": "take_screenshot",
             "description": (
                 "Tira um screenshot de qualquer URL usando o browser headless. "
@@ -385,6 +510,22 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "browse_and_read":
             return await browse_and_read(url=tool_input.get("url", ""))
+        elif tool_name == "system_info":
+            return await system_info()
+        elif tool_name == "run_command":
+            return await run_command(
+                command=tool_input.get("command", ""),
+                timeout=tool_input.get("timeout", 30),
+            )
+        elif tool_name == "list_files":
+            return await list_files(tool_input.get("path", "/app"))
+        elif tool_name == "read_file":
+            return await read_file(tool_input.get("path", ""))
+        elif tool_name == "write_file":
+            return await write_file(
+                path=tool_input.get("path", ""),
+                content=tool_input.get("content", ""),
+            )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
     except Exception as exc:
