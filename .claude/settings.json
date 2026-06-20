@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/claude-code"]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "mcp-postgresmcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://usuario:senha@localhost:5432/banco"
+      }
+    }
+  },
+  "permissions": {
+    "allow": [
+      "mcp__Google_Drive__*",
+      "mcp__Gmail__*",
+      "mcp__Google_Calendar__*",
+      "mcp__Slack__*",
+      "mcp__github__*",
+      "mcp__Canva__*",
+      "mcp__playwright__*",
+      "mcp__filesystem__*",
+      "mcp__postgres__*",
+      "Bash(*)"
+    ]
+  }
+}

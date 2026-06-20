@@ -1,2 +1,18 @@
 .DS_Store
 
+.claude/worktrees/
+
+# Secrets — nunca commitar
+jarbas-backend/.env
+*.env
+.env
+*.pem
+*.key
+
+# SSH private keys
+.ssh/claude_key
+
+# Arquivos gerados em runtime
+__pycache__/
+*.pyc
+*.db
