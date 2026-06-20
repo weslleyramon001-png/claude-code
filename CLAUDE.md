@@ -212,9 +212,14 @@ Produtos-Digitais/Planilhas/ → planilhas .xlsx prontas para venda
 
 - [x] JARBAS — ativado com keys (Railway + Anthropic + ElevenLabs + Tavily) — 18/06/2026
 - [x] JARBAS — Voice Mode testado (funcional, voz levemente robótica — melhora com clone JARVIS)
+- [ ] **TESTAR PLANILHAS antes de publicar no Kiwify** (próxima sessão)
+  - Pasta Drive ID: `1ooK3NCnmQKM34xNBWM3NMQtg-BAK9ZJx`
+  - Planilhas encontradas: 01_Habitos, 04_Gastos, 07_Metas, 13_Estoque (faltam buscar as outras 9)
+  - Plano: baixar todas → script Python openpyxl → inserir dados de teste → checar dashboards → relatório ✅/⚠️
 - [ ] Tailscale — instalar no Windows do Ramon + gerar auth key
-- [ ] Publicar pack de planilhas no Kiwify (checklist pronto)
+- [ ] Publicar pack de planilhas no Kiwify (só após testes passarem)
 - [ ] Configurar MailerLite com os 7 emails (emails prontos)
+- [ ] Clonar voz JARVIS no ElevenLabs (guia salvo no Drive: "🎙️ AMANHÃ — Clonar Voz JARVIS no JARBAS")
 - [ ] Servidor Servlink na nuvem (Contabo) — quando Ramon decidir migrar
 - [ ] Selecionar produtos de afiliado para promover
 
