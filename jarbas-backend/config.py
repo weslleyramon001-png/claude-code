@@ -18,8 +18,8 @@ class Config:
 
     # ── ElevenLabs Voice ───────────────────────────────────────────────────
     ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
-    # Daniel — voz britânica masculina, autoritária, estilo JARVIS
-    ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "onwK4e9ZLuTAKqWW03F9")
+    # Mateus — voz masculina clara em PT-BR (padrão para JARBAS)
+    ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "XrExE9yKIg1WjnnlVkGX")
 
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
