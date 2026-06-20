@@ -15,10 +15,10 @@ from typing import Optional
 
 # These settings are tuned for a clear, natural Brazilian Portuguese voice.
 _VOICE_SETTINGS = {
-    "stability": 0.5,           # 0 = more expressive, 1 = more consistent
-    "similarity_boost": 0.75,   # How closely to match the original voice
-    "style": 0.4,               # Expressiveness / style exaggeration
-    "use_speaker_boost": True,  # Boosts similarity to the original speaker
+    "stability": 0.75,          # Higher = mais consistente (bom para JARVIS)
+    "similarity_boost": 0.85,   # Alta similaridade com a voz Daniel
+    "style": 0.15,              # Baixo = mais natural, menos exagerado
+    "use_speaker_boost": True,
 }
 
 _ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1/text-to-speech"
@@ -65,7 +65,7 @@ async def text_to_speech(
     }
     payload = {
         "text": text_clean,
-        "model_id": "eleven_multilingual_v2",  # Best model for Portuguese
+        "model_id": "eleven_turbo_v2_5",  # Free tier compatible, multilingual
         "voice_settings": _VOICE_SETTINGS,
     }
 
