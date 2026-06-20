@@ -232,10 +232,6 @@ async def write_file(path: str, content: str) -> str:
 
 
 async def get_weather(city: str) -> str:
-    """
-    Get real weather data using Open-Meteo API (free, no API key required).
-    Uses geocoding to find coordinates, then fetches current + daily forecast.
-    """
     WMO_CODES = {
         0: "Céu limpo ☀️",
         1: "Principalmente limpo 🌤️", 2: "Parcialmente nublado ⛅", 3: "Nublado ☁️",
@@ -249,7 +245,6 @@ async def get_weather(city: str) -> str:
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Step 1: geocoding
             geo_resp = await client.get(
                 "https://geocoding-api.open-meteo.com/v1/search",
                 params={"name": city, "count": 1, "language": "pt", "format": "json"},
@@ -266,7 +261,6 @@ async def get_weather(city: str) -> str:
             city_name = loc.get("name", city)
             country = loc.get("country", "")
 
-            # Step 2: weather forecast
             wx_resp = await client.get(
                 "https://api.open-meteo.com/v1/forecast",
                 params={
@@ -307,6 +301,69 @@ async def get_weather(city: str) -> str:
         return f"Timeout ao buscar clima para {city}. Tente novamente."
     except Exception as exc:
         return f"Erro ao buscar clima: {exc}"
+
+
+# ── Financial Movements ────────────────────────────────────────────────────
+
+async def tool_add_movement(movement_type: str, amount: float, description: str, category: str = "geral") -> str:
+    from memory import add_movement as db_add
+    tipo = movement_type.lower().strip().replace("saída", "saida")
+    if tipo not in ("entrada", "saida"):
+        return "Tipo inválido. Use 'entrada' (recebimento) ou 'saida' (gasto/pagamento)."
+    if amount <= 0:
+        return "Valor deve ser maior que zero."
+    mov_id = db_add(tipo, amount, description, category)
+    emoji = "💰" if tipo == "entrada" else "💸"
+    sinal = "+" if tipo == "entrada" else "-"
+    return (
+        f"{emoji} **Movimento registrado!**\n\n"
+        f"**#{mov_id}** — {description}\n"
+        f"**Tipo:** {tipo.capitalize()}\n"
+        f"**Valor:** {sinal}R$ {amount:,.2f}\n"
+        f"**Categoria:** {category}"
+    )
+
+
+async def tool_list_movements(limit: int = 10, category: str = "") -> str:
+    from memory import list_movements as db_list, get_balance as db_balance
+    movements = db_list(limit=limit, category=category if category else None)
+    balance = db_balance()
+
+    saldo_emoji = "📈" if balance["saldo"] >= 0 else "📉"
+    lines = [
+        f"📊 **Extrato — últimos {len(movements)} movimentos**\n",
+        f"💰 Entradas totais: R$ {balance['entradas']:,.2f}",
+        f"💸 Saídas totais:   R$ {balance['saidas']:,.2f}",
+        f"{saldo_emoji} **Saldo atual:     R$ {balance['saldo']:,.2f}**\n",
+        "---",
+    ]
+
+    if not movements:
+        lines.append("_Nenhum movimento registrado ainda._")
+    else:
+        for m in movements:
+            emoji = "↗️" if m["type"] == "entrada" else "↘️"
+            sinal = "+" if m["type"] == "entrada" else "-"
+            data = m["created_at"][:10]
+            lines.append(
+                f"{emoji} **{sinal}R$ {m['amount']:,.2f}** — {m['description']} "
+                f"`[{m['category']}]` _{data}_"
+            )
+
+    return "\n".join(lines)
+
+
+async def tool_get_balance() -> str:
+    from memory import get_balance as db_balance
+    b = db_balance()
+    saldo_emoji = "📈" if b["saldo"] >= 0 else "📉"
+    return (
+        f"💵 **Saldo Atual**\n\n"
+        f"💰 Entradas: **R$ {b['entradas']:,.2f}**\n"
+        f"💸 Saídas:   **R$ {b['saidas']:,.2f}**\n"
+        f"{saldo_emoji} Saldo:    **R$ {b['saldo']:,.2f}**\n\n"
+        f"_Total de {b['total_movimentos']} movimentos registrados_"
+    )
 
 
 # ── Claude tool definitions ────────────────────────────────────────────────
@@ -395,6 +452,50 @@ def format_tools_for_claude() -> list[dict]:
                 },
                 "required": ["city"],
             },
+        },
+        {
+            "name": "add_movement",
+            "description": (
+                "Registra uma movimentação financeira (entrada ou saída). "
+                "Use quando Ramon disser que recebeu, vendeu, ganhou, gastou, pagou ou transferiu algum valor."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "movement_type": {
+                        "type": "string",
+                        "description": "'entrada' para recebimentos/vendas, 'saida' para gastos/pagamentos.",
+                        "enum": ["entrada", "saida"],
+                    },
+                    "amount": {"type": "number", "description": "Valor em reais. Apenas o número, sem R$."},
+                    "description": {"type": "string", "description": "Descrição do movimento. Ex: 'Venda planilha Kiwify', 'Internet mensal', 'Salário'"},
+                    "category": {"type": "string", "description": "Categoria opcional. Ex: 'kiwify', 'contas', 'marketing', 'salário'. Padrão: 'geral'", "default": "geral"},
+                },
+                "required": ["movement_type", "amount", "description"],
+            },
+        },
+        {
+            "name": "list_movements",
+            "description": (
+                "Lista os movimentos financeiros registrados e mostra o saldo atual. "
+                "Use quando Ramon quiser ver o extrato, os gastos recentes, as entradas ou consultar o histórico."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Quantos movimentos mostrar (padrão: 10).", "default": 10},
+                    "category": {"type": "string", "description": "Filtrar por categoria. Deixe vazio para ver todos.", "default": ""},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "get_balance",
+            "description": (
+                "Mostra o saldo atual: total de entradas, saídas e saldo líquido. "
+                "Use quando Ramon perguntar quanto tem, qual o saldo, como está o caixa."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
         },
         {
             "name": "system_info",
@@ -503,6 +604,20 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "get_weather":
             return await get_weather(tool_input.get("city", ""))
+        elif tool_name == "add_movement":
+            return await tool_add_movement(
+                movement_type=tool_input.get("movement_type", "entrada"),
+                amount=float(tool_input.get("amount", 0)),
+                description=tool_input.get("description", ""),
+                category=tool_input.get("category", "geral"),
+            )
+        elif tool_name == "list_movements":
+            return await tool_list_movements(
+                limit=tool_input.get("limit", 10),
+                category=tool_input.get("category", ""),
+            )
+        elif tool_name == "get_balance":
+            return await tool_get_balance()
         elif tool_name == "take_screenshot":
             return await take_screenshot(
                 url=tool_input.get("url", ""),

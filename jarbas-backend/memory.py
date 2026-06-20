@@ -5,6 +5,7 @@ Tables:
   - messages   : Full conversation history per session
   - user_facts : Long-term facts about the user (extracted from conversations)
   - sessions   : Session metadata
+  - movements  : Financial movements (entradas/saídas)
 
 The DB is created automatically on first use.
 """
@@ -61,6 +62,18 @@ def init_db() -> None:
                 last_active TEXT    NOT NULL DEFAULT (datetime('now')),
                 metadata    TEXT    DEFAULT '{}'
             );
+
+            CREATE TABLE IF NOT EXISTS movements (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                type        TEXT    NOT NULL CHECK(type IN ('entrada', 'saida')),
+                amount      REAL    NOT NULL,
+                description TEXT    NOT NULL,
+                category    TEXT    NOT NULL DEFAULT 'geral',
+                created_at  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_movements_created
+                ON movements(created_at);
         """)
         conn.commit()
     finally:
@@ -218,6 +231,66 @@ def get_facts_as_string() -> str:
         lines.append(f"  • {f['fact']}")
 
     return "\n".join(lines)
+
+
+# ── Financial Movements ────────────────────────────────────────────────────
+
+def add_movement(movement_type: str, amount: float, description: str, category: str = "geral") -> int:
+    """Insert a financial movement and return its ID."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO movements (type, amount, description, category) VALUES (?, ?, ?, ?)",
+            (movement_type, amount, description, category),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def list_movements(limit: int = 20, category: Optional[str] = None) -> list[dict]:
+    """Return the most recent movements, optionally filtered by category."""
+    conn = get_connection()
+    try:
+        if category:
+            rows = conn.execute(
+                "SELECT * FROM movements WHERE category = ? ORDER BY created_at DESC LIMIT ?",
+                (category, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM movements ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_balance() -> dict:
+    """Return totals: entradas, saidas, saldo líquido, total de movimentos."""
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            """
+            SELECT
+                COALESCE(SUM(CASE WHEN type = 'entrada' THEN amount ELSE 0 END), 0) AS total_entradas,
+                COALESCE(SUM(CASE WHEN type = 'saida'   THEN amount ELSE 0 END), 0) AS total_saidas,
+                COUNT(*) AS total_movimentos
+            FROM movements
+            """
+        ).fetchone()
+        entradas = row["total_entradas"]
+        saidas = row["total_saidas"]
+        return {
+            "entradas": entradas,
+            "saidas": saidas,
+            "saldo": entradas - saidas,
+            "total_movimentos": row["total_movimentos"],
+        }
+    finally:
+        conn.close()
 
 
 # ── Fact extraction ────────────────────────────────────────────────────────
