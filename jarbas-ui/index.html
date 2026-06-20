@@ -1001,8 +1001,19 @@
       </label>
     </div>
 
+    <div class="field">
+      <label>Tema de cores</label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="theme-btn" data-theme="roxo" onclick="applyTheme('roxo')" style="background:#A855F7;border:2px solid transparent;border-radius:50%;width:28px;height:28px;cursor:pointer" title="Roxo"></button>
+        <button class="theme-btn" data-theme="azul" onclick="applyTheme('azul')" style="background:#3B82F6;border:2px solid transparent;border-radius:50%;width:28px;height:28px;cursor:pointer" title="Azul"></button>
+        <button class="theme-btn" data-theme="verde" onclick="applyTheme('verde')" style="background:#10B981;border:2px solid transparent;border-radius:50%;width:28px;height:28px;cursor:pointer" title="Verde"></button>
+        <button class="theme-btn" data-theme="vermelho" onclick="applyTheme('vermelho')" style="background:#EF4444;border:2px solid transparent;border-radius:50%;width:28px;height:28px;cursor:pointer" title="Vermelho"></button>
+      </div>
+    </div>
+
     <div class="settings-actions">
       <button class="btn-primary" onclick="saveSettings()">Salvar</button>
+      <button class="btn-secondary" onclick="exportHistory()">Exportar Conversa</button>
       <button class="btn-secondary" onclick="clearHistory()">Limpar Historico</button>
     </div>
   </div>
@@ -1097,6 +1108,28 @@
   }
 
   // ── Settings ────────────────────────────────────────────────────────
+  // ── Theme system ─────────────────────────────────────────────────────
+  const THEMES = {
+    roxo:     { primary: '#A855F7', accent: '#E879F9' },
+    azul:     { primary: '#3B82F6', accent: '#60A5FA' },
+    verde:    { primary: '#10B981', accent: '#34D399' },
+    vermelho: { primary: '#EF4444', accent: '#F87171' },
+  };
+
+  function applyTheme(name) {
+    const t = THEMES[name] || THEMES.roxo;
+    document.documentElement.style.setProperty('--primary', t.primary);
+    document.documentElement.style.setProperty('--accent', t.accent);
+    localStorage.setItem('jarbas_theme', name);
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.style.border = btn.dataset.theme === name ? '2px solid white' : '2px solid transparent';
+    });
+  }
+
+  function exportHistory() {
+    window.open(`${getHttpBase()}/export/${sessionId}?format=txt`, '_blank');
+  }
+
   function loadSettings() {
     document.getElementById('ws-url-input').value = wsUrl;
     document.getElementById('session-id-input').value = sessionId;
@@ -1107,6 +1140,8 @@
     document.getElementById('voice-toggle').addEventListener('change', (e) => {
       document.getElementById('voice-id-field').style.display = e.target.checked ? 'block' : 'none';
     });
+    const savedTheme = localStorage.getItem('jarbas_theme') || 'roxo';
+    applyTheme(savedTheme);
   }
 
   function saveSettings() {
@@ -1783,6 +1818,7 @@
 
   // ── Init ─────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(localStorage.getItem('jarbas_theme') || 'roxo');
     connect();
     document.getElementById('user-input').focus();
     if ('serviceWorker' in navigator) {
