@@ -927,9 +927,119 @@
       transition: all 0.2s;
     }
     #voice-stop-btn:hover { background: rgba(248,113,113,0.25); }
+
+    /* ── Login Screen ───────────────────────────────────────────────── */
+    #login-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(9, 5, 15, 0.98);
+      backdrop-filter: blur(16px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #login-screen.visible { display: flex; }
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 36px;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: 0 0 80px var(--glow2);
+      text-align: center;
+    }
+    .login-card .login-icon { font-size: 3rem; margin-bottom: 16px; filter: drop-shadow(0 0 20px var(--primary)); }
+    .login-card h2 {
+      font-size: 1.5rem; font-weight: 700; margin-bottom: 6px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .login-card p { color: var(--muted); font-size: 0.88rem; margin-bottom: 24px; }
+    .login-card .field { text-align: left; }
+    #login-error { color: var(--error); font-size: 0.8rem; margin-top: 10px; display: none; }
+
+    /* ── Financial Dashboard ────────────────────────────────────────── */
+    #finance-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(9, 5, 15, 0.85);
+      backdrop-filter: blur(10px);
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 70px 16px 16px;
+    }
+    #finance-panel.visible { display: flex; }
+    .finance-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 360px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    }
+    .finance-card h3 { font-size: 1rem; font-weight: 600; color: var(--primary); margin-bottom: 18px; }
+    .balance-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;
+    }
+    .balance-item {
+      background: var(--card2); border: 1px solid var(--border2); border-radius: 10px;
+      padding: 12px 10px; text-align: center;
+    }
+    .balance-item .b-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .balance-item .b-value { font-size: 0.9rem; font-weight: 700; }
+    .b-entrada { color: var(--success); }
+    .b-saida   { color: var(--error); }
+    .b-saldo   { color: var(--primary); }
+    .movements-list { display: flex; flex-direction: column; gap: 8px; }
+    .mov-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: var(--card2); border: 1px solid var(--border2); border-radius: 8px;
+      font-size: 0.82rem;
+    }
+    .mov-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .mov-info { flex: 1; min-width: 0; }
+    .mov-desc { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mov-meta { color: var(--muted); font-size: 0.72rem; }
+    .mov-value { font-weight: 700; flex-shrink: 0; }
+    .mov-value.entrada { color: var(--success); }
+    .mov-value.saida   { color: var(--error); }
+    .finance-empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px 0; }
+    .finance-loading { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px 0; }
   </style>
 </head>
 <body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">&#129302;</div>
+    <h2>JARBAS</h2>
+    <p>Digite o código de acesso para continuar.</p>
+    <div class="field">
+      <label>Código de Acesso</label>
+      <input type="password" id="token-input" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter') submitLogin()" autocomplete="current-password" />
+    </div>
+    <button class="btn-primary" onclick="submitLogin()" style="width:100%;margin-top:16px">Entrar</button>
+    <p id="login-error">Código inválido. Tente novamente.</p>
+  </div>
+</div>
+
+<!-- Financial Dashboard Panel -->
+<div id="finance-panel" onclick="hideFinance(event)">
+  <div class="finance-card" onclick="event.stopPropagation()">
+    <h3>&#128176; Dashboard Financeiro</h3>
+    <div id="finance-balance" class="finance-loading">Carregando...</div>
+    <div id="finance-movements"></div>
+  </div>
+</div>
 
 <!-- Holographic scan line -->
 <div class="holo-line"></div>
@@ -1011,6 +1121,11 @@
       </label>
     </div>
 
+    <div class="toggle-row">
+      <span>Notificacoes push</span>
+      <button class="btn-secondary" onclick="requestNotifications()" style="padding:5px 12px;font-size:0.78rem">Ativar</button>
+    </div>
+
     <div class="settings-actions">
       <button class="btn-primary" onclick="saveSettings()">Salvar</button>
       <button class="btn-secondary" onclick="clearHistory()">Limpar Historico</button>
@@ -1035,6 +1150,7 @@
         <div class="dot"></div>
         <span id="status-text">Desconectado</span>
       </div>
+      <button class="icon-btn" onclick="toggleFinance()" title="Dashboard Financeiro">&#128176;</button>
       <button class="icon-btn" id="setup-btn" onclick="showSetup()" title="Ajuda de configuracao">&#10067;</button>
       <button class="icon-btn" id="settings-btn" onclick="toggleSettings()" title="Configuracoes">&#9881;</button>
     </div>
@@ -1118,6 +1234,7 @@
   let voiceEnabled = localStorage.getItem('jarbas_voice') === 'true';
   let typewriterEnabled = localStorage.getItem('jarbas_typewriter') !== 'false';
   let overrideVoiceId = localStorage.getItem('jarbas_voice_id') || '';
+  let accessToken = localStorage.getItem('jarbas_token') || '';
   let isStreaming = false;
   let currentStreamBubble = null;
   let currentStreamText = '';
@@ -1128,6 +1245,52 @@
       .replace(/^ws:\/\//, 'http://')
       .replace(/^wss:\/\//, 'https://')
       .replace(/\/ws\/.*$/, '');
+  }
+
+  // Auth headers for fetch calls
+  function getAuthHeaders(extra) {
+    const headers = { 'Content-Type': 'application/json', ...extra };
+    if (accessToken) headers['Authorization'] = 'Bearer ' + accessToken;
+    return headers;
+  }
+
+  // ── Login ────────────────────────────────────────────────────────────
+  function checkAuth() {
+    if (!accessToken) {
+      document.getElementById('login-screen').classList.add('visible');
+    }
+  }
+
+  async function submitLogin() {
+    const input = document.getElementById('token-input');
+    const token = input.value.trim();
+    if (!token) return;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+
+    // Test token against /health (open endpoint) then /history (protected)
+    try {
+      const res = await fetch(`${getHttpBase()}/history?session_id=__test__`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.status === 401) {
+        errEl.style.display = 'block';
+        input.value = '';
+        input.focus();
+        return;
+      }
+      // Token OK (200 or server has no auth = open)
+      accessToken = token;
+      localStorage.setItem('jarbas_token', token);
+      document.getElementById('login-screen').classList.remove('visible');
+      reconnect();
+    } catch(e) {
+      // Network error — accept token and try anyway
+      accessToken = token;
+      localStorage.setItem('jarbas_token', token);
+      document.getElementById('login-screen').classList.remove('visible');
+      reconnect();
+    }
   }
 
   // ── Settings ────────────────────────────────────────────────────────
@@ -1164,7 +1327,7 @@
     try {
       await fetch(`${getHttpBase()}/clear`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ session_id: sessionId }),
       });
     } catch (e) { /* ignore */ }
@@ -1206,11 +1369,102 @@
     reconnect();
   }
 
+  // ── Financial Dashboard ──────────────────────────────────────────────
+  function toggleFinance() {
+    const panel = document.getElementById('finance-panel');
+    if (panel.classList.contains('visible')) {
+      panel.classList.remove('visible');
+    } else {
+      panel.classList.add('visible');
+      loadFinanceDashboard();
+    }
+  }
+
+  function hideFinance(event) {
+    if (!event || event.target === document.getElementById('finance-panel')) {
+      document.getElementById('finance-panel').classList.remove('visible');
+    }
+  }
+
+  async function loadFinanceDashboard() {
+    const balEl = document.getElementById('finance-balance');
+    const movEl = document.getElementById('finance-movements');
+    balEl.innerHTML = '<div class="finance-loading">Carregando...</div>';
+    movEl.innerHTML = '';
+
+    try {
+      const [balRes, movRes] = await Promise.all([
+        fetch(`${getHttpBase()}/finance/balance`, { headers: getAuthHeaders({}) }),
+        fetch(`${getHttpBase()}/finance/movements?limit=15`, { headers: getAuthHeaders({}) }),
+      ]);
+
+      if (balRes.ok) {
+        const b = await balRes.json();
+        const saldoClass = b.saldo >= 0 ? 'b-saldo' : 'b-saida';
+        balEl.innerHTML = `
+          <div class="balance-grid">
+            <div class="balance-item"><div class="b-label">Entradas</div><div class="b-value b-entrada">R$ ${fmtBRL(b.entradas)}</div></div>
+            <div class="balance-item"><div class="b-label">Saidas</div><div class="b-value b-saida">R$ ${fmtBRL(b.saidas)}</div></div>
+            <div class="balance-item"><div class="b-label">Saldo</div><div class="b-value ${saldoClass}">R$ ${fmtBRL(b.saldo)}</div></div>
+          </div>
+        `;
+      } else {
+        balEl.innerHTML = '<div class="finance-empty">Sem dados de saldo.</div>';
+      }
+
+      if (movRes.ok) {
+        const data = await movRes.json();
+        if (!data.movements || data.movements.length === 0) {
+          movEl.innerHTML = '<div class="finance-empty">Nenhum movimento registrado.</div>';
+        } else {
+          movEl.innerHTML = '<div class="movements-list">' +
+            data.movements.map(m => {
+              const icon = m.type === 'entrada' ? '&#8599;' : '&#8600;';
+              const cls = m.type === 'entrada' ? 'entrada' : 'saida';
+              const sinal = m.type === 'entrada' ? '+' : '-';
+              const date = m.created_at ? m.created_at.substring(0,10) : '';
+              return `<div class="mov-item">
+                <div class="mov-icon">${icon}</div>
+                <div class="mov-info">
+                  <div class="mov-desc">${m.description}</div>
+                  <div class="mov-meta">${m.category} · ${date}</div>
+                </div>
+                <div class="mov-value ${cls}">${sinal}R$&nbsp;${fmtBRL(m.amount)}</div>
+              </div>`;
+            }).join('') +
+          '</div>';
+        }
+      }
+    } catch(e) {
+      balEl.innerHTML = '<div class="finance-empty">Erro ao carregar dados.</div>';
+    }
+  }
+
+  function fmtBRL(n) {
+    return (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ── Push Notifications ───────────────────────────────────────────────
+  async function requestNotifications() {
+    if (!('Notification' in window)) {
+      alert('Seu navegador nao suporta notificacoes push.');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      new Notification('JARBAS', { body: 'Notificacoes ativadas!', icon: 'icons/icon-192.png' });
+    } else {
+      alert('Permissao negada. Verifique as configuracoes do navegador.');
+    }
+  }
+
   // ── WebSocket connection ─────────────────────────────────────────────
   function connect() {
     setStatus('connecting', 'Conectando...');
 
-    ws = new WebSocket(wsUrl);
+    // Append token as query param for WebSocket auth
+    const wsUrlWithToken = accessToken ? wsUrl + '?token=' + encodeURIComponent(accessToken) : wsUrl;
+    ws = new WebSocket(wsUrlWithToken);
 
     ws.onopen = () => {
       setStatus('connected', 'Online');
@@ -1505,7 +1759,7 @@
 
       const response = await fetch(`${getHttpBase()}/voice`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(voicePayload),
       });
 
@@ -1775,7 +2029,7 @@
 
       const response = await fetch(`${getHttpBase()}/voice`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(voicePayload2),
       });
 
@@ -1817,10 +2071,13 @@
 
   // ── Init ─────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    connect();
-    document.getElementById('user-input').focus();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+    checkAuth();
+    if (accessToken) {
+      connect();
+      document.getElementById('user-input').focus();
     }
   });
 </script>

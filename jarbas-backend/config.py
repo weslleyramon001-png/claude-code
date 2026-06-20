@@ -18,14 +18,16 @@ class Config:
 
     # ── ElevenLabs Voice ───────────────────────────────────────────────────
     ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
-    # Mateus — voz masculina clara em PT-BR (padrão para JARBAS)
-    ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "XrExE9yKIg1WjnnlVkGX")
+    # Daniel — voz britânica masculina, autoritária, estilo JARVIS
+    ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "onwK4e9ZLuTAKqWW03F9")
 
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
+    # Token de acesso para proteger a API. Deixe vazio para acesso aberto (dev local).
+    ACCESS_TOKEN: str = os.getenv("ACCESS_TOKEN", "")
 
     # ── CORS ───────────────────────────────────────────────────────────────
     # Comma-separated list of allowed origins, e.g. "https://myapp.com,https://jarbas.up.railway.app"

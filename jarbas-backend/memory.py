@@ -74,6 +74,15 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_movements_created
                 ON movements(created_at);
+
+            CREATE TABLE IF NOT EXISTS reminders (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                title       TEXT    NOT NULL,
+                description TEXT    NOT NULL DEFAULT '',
+                due_date    TEXT    DEFAULT NULL,
+                completed   INTEGER NOT NULL DEFAULT 0,
+                created_at  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            );
         """)
         conn.commit()
     finally:
@@ -334,6 +343,53 @@ def auto_extract_and_save(message: str) -> None:
     facts = extract_facts_from_message(message)
     for category, fact in facts:
         save_fact(category, fact)
+
+
+# ── Reminders ─────────────────────────────────────────────────────────────
+
+def create_reminder(title: str, description: str = "", due_date: str = "") -> int:
+    """Insert a reminder and return its ID."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO reminders (title, description, due_date) VALUES (?, ?, ?)",
+            (title, description, due_date or None),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def list_reminders(include_completed: bool = False) -> list[dict]:
+    """Return reminders, optionally including completed ones."""
+    conn = get_connection()
+    try:
+        if include_completed:
+            rows = conn.execute(
+                "SELECT * FROM reminders ORDER BY completed ASC, created_at DESC"
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM reminders WHERE completed = 0 ORDER BY created_at DESC"
+            ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def complete_reminder(reminder_id: int) -> bool:
+    """Mark a reminder as completed. Returns True if found and updated."""
+    conn = get_connection()
+    try:
+        result = conn.execute(
+            "UPDATE reminders SET completed = 1 WHERE id = ? AND completed = 0",
+            (reminder_id,),
+        )
+        conn.commit()
+        return result.rowcount > 0
+    finally:
+        conn.close()
 
 
 # ── Module init ────────────────────────────────────────────────────────────

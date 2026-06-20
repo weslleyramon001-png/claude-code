@@ -23,9 +23,10 @@ from typing import Optional
 
 import anthropic
 import httpx
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Security, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from config import config
@@ -35,10 +36,28 @@ from memory import (
     clear_session,
     get_facts_as_string,
     auto_extract_and_save,
+    get_balance,
+    list_movements,
+    list_reminders,
+    create_reminder,
+    complete_reminder,
 )
 from personality import get_system_prompt
 from tools import format_tools_for_claude, process_tool_call
 from voice import text_to_speech
+
+
+# ── Auth ───────────────────────────────────────────────────────────────────
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+def require_auth(credentials: HTTPAuthorizationCredentials = Security(_bearer)):
+    """Dependency: validates Bearer token if ACCESS_TOKEN is configured."""
+    if not config.ACCESS_TOKEN:
+        return  # open access when no token configured
+    if not credentials or credentials.credentials != config.ACCESS_TOKEN:
+        raise HTTPException(status_code=401, detail="Token inválido. Acesso negado.")
 
 
 # ── App setup ──────────────────────────────────────────────────────────────
@@ -78,6 +97,12 @@ class ClearRequest(BaseModel):
 class VoiceRequest(BaseModel):
     text: str
     voice_id: Optional[str] = None
+
+
+class ReminderCreate(BaseModel):
+    title: str
+    description: str = ""
+    due_date: str = ""
 
 
 # ── Core chat logic (shared by /chat and WebSocket) ───────────────────────
@@ -279,7 +304,7 @@ async def health():
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, _=Depends(require_auth)):
     """
     Send a message to JARBAS and get a response.
 
@@ -325,14 +350,14 @@ async def chat(request: ChatRequest):
 
 
 @app.get("/history")
-async def history(session_id: str = "default"):
+async def history(session_id: str = "default", _=Depends(require_auth)):
     """Return conversation history for a session."""
     msgs = get_history(session_id, limit=50)
     return {"session_id": session_id, "messages": msgs, "count": len(msgs)}
 
 
 @app.post("/clear")
-async def clear(request: ClearRequest):
+async def clear(request: ClearRequest, _=Depends(require_auth)):
     """Clear all messages for a session."""
     clear_session(request.session_id)
     return {"status": "ok", "session_id": request.session_id, "message": "Histórico apagado."}
@@ -398,7 +423,7 @@ async def export_history(session_id: str, format: str = "json"):
 
 
 @app.post("/voice")
-async def voice(request: VoiceRequest):
+async def voice(request: VoiceRequest, _=Depends(require_auth)):
     """
     Convert text to speech via ElevenLabs and return audio/mpeg.
 
@@ -434,8 +459,43 @@ async def voice(request: VoiceRequest):
 
 # ── WebSocket ──────────────────────────────────────────────────────────────
 
+@app.get("/finance/balance")
+async def finance_balance(_=Depends(require_auth)):
+    """Retorna saldo financeiro atual (entradas, saídas, líquido)."""
+    return get_balance()
+
+
+@app.get("/finance/movements")
+async def finance_movements(limit: int = 20, category: str = "", _=Depends(require_auth)):
+    """Retorna movimentos financeiros recentes."""
+    mvs = list_movements(limit=limit, category=category if category else None)
+    return {"movements": mvs, "count": len(mvs)}
+
+
+@app.get("/reminders")
+async def get_reminders(include_completed: bool = False, _=Depends(require_auth)):
+    """Lista lembretes (pendentes por padrão)."""
+    return {"reminders": list_reminders(include_completed), "count": len(list_reminders(include_completed))}
+
+
+@app.post("/reminders")
+async def post_reminder(body: ReminderCreate, _=Depends(require_auth)):
+    """Cria um novo lembrete."""
+    rid = create_reminder(body.title, body.description, body.due_date)
+    return {"id": rid, "title": body.title, "description": body.description, "due_date": body.due_date}
+
+
+@app.patch("/reminders/{reminder_id}/complete")
+async def patch_reminder_complete(reminder_id: int, _=Depends(require_auth)):
+    """Marca um lembrete como concluído."""
+    success = complete_reminder(reminder_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Lembrete não encontrado ou já concluído.")
+    return {"status": "ok", "reminder_id": reminder_id}
+
+
 @app.websocket("/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
+async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str = ""):
     """
     WebSocket endpoint for real-time streaming.
 
@@ -445,6 +505,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                    {"type": "done",       "full_response": "...", "tool_calls": [...]}
                    {"type": "error",      "message": "..."}
     """
+    if config.ACCESS_TOKEN and token != config.ACCESS_TOKEN:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
     await websocket.accept()
 
     try:

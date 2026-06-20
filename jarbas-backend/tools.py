@@ -353,6 +353,40 @@ async def tool_list_movements(limit: int = 10, category: str = "") -> str:
     return "\n".join(lines)
 
 
+async def tool_create_reminder(title: str, description: str = "", due_date: str = "") -> str:
+    from memory import create_reminder as db_create
+    rid = db_create(title, description, due_date)
+    parts = [f"📌 **Lembrete criado!**\n\n**#{rid}** — {title}"]
+    if description:
+        parts.append(f"📝 {description}")
+    if due_date:
+        parts.append(f"📅 Prazo: {due_date}")
+    return "\n".join(parts)
+
+
+async def tool_list_reminders(include_completed: bool = False) -> str:
+    from memory import list_reminders as db_list
+    items = db_list(include_completed)
+    if not items:
+        return "Nenhum lembrete pendente, Ramon."
+    label = " (incluindo concluídos)" if include_completed else ""
+    lines = [f"📋 **Lembretes{label}** — {len(items)} item(s)\n"]
+    for r in items:
+        status = "✅" if r["completed"] else "⏳"
+        due = f" · 📅 {r['due_date']}" if r.get("due_date") else ""
+        desc = f"\n   ↳ {r['description']}" if r.get("description") else ""
+        lines.append(f"{status} **#{r['id']}** {r['title']}{due}{desc}")
+    return "\n".join(lines)
+
+
+async def tool_complete_reminder(reminder_id: int) -> str:
+    from memory import complete_reminder as db_complete
+    success = db_complete(reminder_id)
+    if success:
+        return f"✅ Lembrete #{reminder_id} marcado como concluído!"
+    return f"Lembrete #{reminder_id} não encontrado ou já estava concluído."
+
+
 async def tool_get_balance() -> str:
     from memory import get_balance as db_balance
     b = db_balance()
@@ -549,6 +583,47 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
+            "name": "create_reminder",
+            "description": (
+                "Cria um lembrete para Ramon. Use quando ele pedir para lembrar de algo, "
+                "agendar uma tarefa ou registrar um prazo."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Título do lembrete."},
+                    "description": {"type": "string", "description": "Detalhes adicionais (opcional).", "default": ""},
+                    "due_date": {"type": "string", "description": "Data/prazo (opcional). Ex: '2026-07-18', 'antes de julho'.", "default": ""},
+                },
+                "required": ["title"],
+            },
+        },
+        {
+            "name": "list_reminders",
+            "description": (
+                "Lista os lembretes pendentes de Ramon. "
+                "Use quando ele perguntar o que tem para fazer, quais são os lembretes, etc."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "include_completed": {"type": "boolean", "description": "Se True, inclui lembretes já concluídos.", "default": False},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "complete_reminder",
+            "description": "Marca um lembrete como concluído pelo ID.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "reminder_id": {"type": "integer", "description": "ID do lembrete a concluir."},
+                },
+                "required": ["reminder_id"],
+            },
+        },
+        {
             "name": "take_screenshot",
             "description": (
                 "Tira um screenshot de qualquer URL usando o browser headless. "
@@ -618,6 +693,20 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "get_balance":
             return await tool_get_balance()
+        elif tool_name == "create_reminder":
+            return await tool_create_reminder(
+                title=tool_input.get("title", ""),
+                description=tool_input.get("description", ""),
+                due_date=tool_input.get("due_date", ""),
+            )
+        elif tool_name == "list_reminders":
+            return await tool_list_reminders(
+                include_completed=tool_input.get("include_completed", False),
+            )
+        elif tool_name == "complete_reminder":
+            return await tool_complete_reminder(
+                reminder_id=int(tool_input.get("reminder_id", 0)),
+            )
         elif tool_name == "take_screenshot":
             return await take_screenshot(
                 url=tool_input.get("url", ""),
