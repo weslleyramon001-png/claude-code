@@ -2,7 +2,7 @@
 JARBAS Voice Module — ElevenLabs text-to-speech integration.
 
 Uses the ElevenLabs v1 API to convert text to speech.
-Tuned for a clear, authoritative JARVIS-style delivery.
+Brazilian Portuguese optimised settings are baked in.
 
 Returns audio bytes (audio/mpeg) on success, None on failure.
 """
@@ -13,12 +13,12 @@ from typing import Optional
 
 # ── TTS settings ───────────────────────────────────────────────────────────
 
-# Tuned for JARVIS-style: consistent, measured, authoritative
+# These settings are tuned for a clear, natural Brazilian Portuguese voice.
 _VOICE_SETTINGS = {
-    "stability": 0.75,          # Higher = more consistent, less erratic
-    "similarity_boost": 0.85,   # Stay close to Daniel's original voice
-    "style": 0.15,              # Low style = formal, not theatrical
-    "use_speaker_boost": True,  # Boost voice clarity
+    "stability": 0.5,           # 0 = more expressive, 1 = more consistent
+    "similarity_boost": 0.75,   # How closely to match the original voice
+    "style": 0.4,               # Expressiveness / style exaggeration
+    "use_speaker_boost": True,  # Boosts similarity to the original speaker
 }
 
 _ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1/text-to-speech"
@@ -39,18 +39,20 @@ async def text_to_speech(
         text:     The text to convert. Keep under 5000 characters for best results.
         api_key:  ElevenLabs API key (ELEVENLABS_API_KEY).
         voice_id: ElevenLabs voice ID (ELEVENLABS_VOICE_ID).
-                  Default is "onwK4e9ZLuTAKqWW03F9" (Daniel — British male).
+                  Default is "pNInz6obpgDQGcFmaJgB" (Adam).
 
     Returns:
         Raw audio bytes (audio/mpeg) on success.
         None if no API key is configured or if an error occurs.
     """
+    # Guard: no key = silent failure, not an exception
     if not api_key:
         return None
 
     if not text or not text.strip():
         return None
 
+    # Truncate very long texts to avoid API errors
     text_clean = text.strip()
     if len(text_clean) > 4500:
         text_clean = text_clean[:4500] + "..."
@@ -63,7 +65,7 @@ async def text_to_speech(
     }
     payload = {
         "text": text_clean,
-        "model_id": "eleven_multilingual_v2",
+        "model_id": "eleven_multilingual_v2",  # Best model for Portuguese
         "voice_settings": _VOICE_SETTINGS,
     }
 
@@ -74,6 +76,7 @@ async def text_to_speech(
             if response.status_code == 200:
                 return response.content
 
+            # Handle known error cases gracefully
             if response.status_code == 401:
                 print("[JARBAS Voice] ElevenLabs API key inválida (401 Unauthorized).")
                 return None
