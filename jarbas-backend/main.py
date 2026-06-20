@@ -8,6 +8,8 @@ Endpoints:
   GET  /health        — Health check
   POST /voice         — Convert text to speech (ElevenLabs)
   WS   /ws/{session}  — WebSocket for streaming responses
+  GET  /status        — Full service status dashboard
+  GET  /export/{id}   — Export conversation history (JSON or TXT)
 
 Run with:
   python main.py
@@ -20,6 +22,7 @@ import asyncio
 from typing import Optional
 
 import anthropic
+import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
@@ -333,6 +336,65 @@ async def clear(request: ClearRequest):
     """Clear all messages for a session."""
     clear_session(request.session_id)
     return {"status": "ok", "session_id": request.session_id, "message": "Histórico apagado."}
+
+
+@app.get("/status")
+async def full_status():
+    """Dashboard completo — verifica todos os serviços integrados."""
+    services = {}
+
+    # Anthropic
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get("https://api.anthropic.com")
+        services["anthropic"] = "online" if r.status_code < 500 else "degraded"
+    except Exception:
+        services["anthropic"] = "offline"
+
+    # ElevenLabs
+    if config.ELEVENLABS_API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.get(
+                    "https://api.elevenlabs.io/v1/user",
+                    headers={"xi-api-key": config.ELEVENLABS_API_KEY},
+                )
+            services["elevenlabs"] = "online" if r.status_code == 200 else "error"
+        except Exception:
+            services["elevenlabs"] = "offline"
+    else:
+        services["elevenlabs"] = "not configured"
+
+    # Tavily
+    services["tavily"] = "configured" if config.TAVILY_API_KEY else "not configured"
+
+    # Database
+    try:
+        get_history("__healthcheck__")
+        services["database"] = "online"
+    except Exception:
+        services["database"] = "offline"
+
+    return {
+        "status": "online",
+        "version": config.APP_VERSION,
+        "services": services,
+    }
+
+
+@app.get("/export/{session_id}")
+async def export_history(session_id: str, format: str = "json"):
+    """Exporta o histórico de conversa em JSON ou TXT."""
+    msgs = get_history(session_id, limit=200)
+    if format == "txt":
+        lines = [f"[{m['role'].upper()}] {m['content']}" for m in msgs]
+        content = "\n\n".join(lines)
+        return Response(
+            content=content,
+            media_type="text/plain",
+            headers={"Content-Disposition": f"attachment; filename=jarbas_{session_id}.txt"},
+        )
+    return JSONResponse({"session_id": session_id, "messages": msgs, "count": len(msgs)})
 
 
 @app.post("/voice")
