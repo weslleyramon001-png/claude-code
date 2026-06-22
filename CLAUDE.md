@@ -15,6 +15,48 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 
 ---
 
+## JARBAS — Production Status
+
+**JARBAS is live and deployed on Railway.**
+
+| Item | Value |
+|---|---|
+| Production URL | `https://claude-code-production-62f5.up.railway.app` |
+| Railway project | `lively-youthfulness` |
+| Local interface | `D:\jarbas.html` (Edge on Dell) |
+| Railway trial expires | **18/07/2026** — upgrade to paid (~R$25/mês) before this date |
+| Tailscale (Dell) | `100.82.120.121` |
+
+### Active Features (as of 22/06/2026)
+
+| Feature | Status |
+|---|---|
+| Chat (Claude `claude-sonnet-4-6`) | ✅ Online |
+| Voice — ElevenLabs Daniel (`onwK4e9ZLuTAKqWW03F9`) | ⚠️ Key needs renewal (401 error) |
+| JARVIS animation (4 rings + waveform) | ✅ Online |
+| Persistent memory (SQLite) | ✅ Online |
+| Web search (Tavily) | ✅ Online |
+| Financial module (movements + balance) | ✅ Online |
+| Reminders (CRUD) | ✅ Online |
+| Bearer Token auth (`ACCESS_TOKEN`) | ✅ Configured on Railway |
+| Push notifications | ✅ Ready |
+| PWA (installable on mobile) | ✅ Ready |
+
+### Pending Tasks
+
+| Priority | Task |
+|---|---|
+| 🔴 URGENT | Renew ElevenLabs API key → update `ELEVENLABS_API_KEY` on Railway |
+| 🟡 Before 18/07 | Upgrade Railway trial to paid plan |
+| ⬜ | Tailscale on other notebooks (Samsung Lyvian etc.) |
+| ⬜ | Clone JARVIS voice (Paul Bettany) on ElevenLabs |
+| ⬜ | MailerLite — set up 7-email funnel (content already written) |
+| ⬜ | Kiwify — publish spreadsheet pack (product ready, just needs upload) |
+
+> To renew ElevenLabs key: `elevenlabs.io` → avatar → Profile → API Keys → delete old key → Create API Key → paste in Railway Variables → confirm `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
+
+---
+
 ## JARBAS Backend
 
 ### Running Locally
