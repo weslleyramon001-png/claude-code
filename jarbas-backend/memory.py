@@ -345,6 +345,29 @@ def auto_extract_and_save(message: str) -> None:
         save_fact(category, fact)
 
 
+def delete_fact(fact_id: int) -> bool:
+    """Delete a specific user fact by ID. Returns True if deleted."""
+    conn = get_connection()
+    try:
+        result = conn.execute("DELETE FROM user_facts WHERE id = ?", (fact_id,))
+        conn.commit()
+        return result.rowcount > 0
+    finally:
+        conn.close()
+
+
+def get_facts_with_ids() -> list[dict]:
+    """Return all user facts including their IDs (for deletion)."""
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT id, category, fact, confidence FROM user_facts ORDER BY category, confidence DESC"
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 # ── Reminders ─────────────────────────────────────────────────────────────
 
 def create_reminder(title: str, description: str = "", due_date: str = "") -> int:

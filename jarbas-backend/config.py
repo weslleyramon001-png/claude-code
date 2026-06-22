@@ -46,10 +46,10 @@ class Config:
     CLAUDE_MODEL: str = "claude-sonnet-4-6"
 
     # Max tokens for Claude responses
-    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "2048"))
+    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "4096"))
 
     # How many past messages to include in context
-    HISTORY_LIMIT: int = int(os.getenv("HISTORY_LIMIT", "20"))
+    HISTORY_LIMIT: int = int(os.getenv("HISTORY_LIMIT", "30"))
 
     @property
     def allowed_origins(self) -> list[str]:
