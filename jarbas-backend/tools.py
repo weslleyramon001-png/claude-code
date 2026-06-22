@@ -400,6 +400,35 @@ async def tool_get_balance() -> str:
     )
 
 
+async def tool_save_memory(category: str, fact: str) -> str:
+    from memory import save_fact
+    save_fact(category.lower().strip(), fact.strip())
+    return f"🧠 Memorizado em [{category.upper()}]: {fact}"
+
+
+async def tool_list_memories() -> str:
+    from memory import get_facts_with_ids
+    facts = get_facts_with_ids()
+    if not facts:
+        return "Nenhuma memória salva ainda."
+    current_cat = None
+    lines = ["🧠 **Memórias do JARBAS**\n"]
+    for f in facts:
+        if f["category"] != current_cat:
+            current_cat = f["category"]
+            lines.append(f"\n**[{current_cat.upper()}]**")
+        lines.append(f"  #{f['id']} — {f['fact']}")
+    return "\n".join(lines)
+
+
+async def tool_delete_memory(fact_id: int) -> str:
+    from memory import delete_fact
+    success = delete_fact(fact_id)
+    if success:
+        return f"🗑️ Memória #{fact_id} apagada."
+    return f"Memória #{fact_id} não encontrada."
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -653,6 +682,47 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["url"],
             },
         },
+        {
+            "name": "save_memory",
+            "description": (
+                "Salva um fato importante sobre Ramon na memória persistente do JARBAS. "
+                "Use sempre que Ramon revelar algo relevante: preferências, metas, contexto de negócio, "
+                "decisões tomadas, informações pessoais ou qualquer coisa que deva ser lembrada no futuro."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Categoria do fato. Ex: 'identity', 'business', 'goals', 'preferences', 'finance', 'projects'.",
+                    },
+                    "fact": {
+                        "type": "string",
+                        "description": "O fato a memorizar, escrito de forma clara e objetiva. Ex: 'Prefere respostas curtas e diretas.'",
+                    },
+                },
+                "required": ["category", "fact"],
+            },
+        },
+        {
+            "name": "list_memories",
+            "description": (
+                "Lista todas as memórias salvas sobre Ramon. "
+                "Use quando Ramon perguntar o que o JARBAS sabe sobre ele, ou antes de salvar algo novo para evitar duplicatas."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "delete_memory",
+            "description": "Apaga uma memória específica pelo ID (obtido via list_memories). Use quando Ramon pedir para esquecer algo ou corrigir uma informação errada.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "fact_id": {"type": "integer", "description": "ID da memória a apagar."},
+                },
+                "required": ["fact_id"],
+            },
+        },
     ]
 
 
@@ -729,6 +799,17 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             return await write_file(
                 path=tool_input.get("path", ""),
                 content=tool_input.get("content", ""),
+            )
+        elif tool_name == "save_memory":
+            return await tool_save_memory(
+                category=tool_input.get("category", "general"),
+                fact=tool_input.get("fact", ""),
+            )
+        elif tool_name == "list_memories":
+            return await tool_list_memories()
+        elif tool_name == "delete_memory":
+            return await tool_delete_memory(
+                fact_id=int(tool_input.get("fact_id", 0)),
             )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
