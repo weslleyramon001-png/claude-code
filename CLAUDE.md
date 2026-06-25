@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Dell (Ramon) | ✅ Tailscale OK | `100.82.120.121` | SSH pendente |
 | Samsung GalaxyBook | ✅ SSH + Tailscale OK | `100.124.202.29` | `wesll` (alias `ssh samsung`) |
 | Samsung Lyvian | ⬜ Setup parcial | — | `lyvia` |
-| Container (Claude) | ✅ Tailscale OK | `100.114.215.37` | — (reiniciar a cada sessão) |
+| Vsap (container Claude) | ✅ Tailscale OK | `100.114.215.37` | — (reiniciar Tailscale a cada sessão; SSH servidor não aplicável) |
 
 **Chave SSH pública (container → notebooks):**
 ```
