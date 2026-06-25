@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Idioma de Interação
+
+**SEMPRE** responda em português brasileiro, independentemente do idioma usado na pergunta. Toda a comunicação com o usuário deve ser em pt-BR.
+
 ---
 
 ## Repository Overview
