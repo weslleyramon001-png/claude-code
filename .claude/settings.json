@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "railway": {
+      "command": "python3",
+      "args": ["/home/user/claude-code/mcp-servers/railway/server.py"],
+      "env": {
+        "RAILWAY_API_TOKEN": "${RAILWAY_API_TOKEN}"
+      }
+    },
+    "mailerlite": {
+      "command": "python3",
+      "args": ["/home/user/claude-code/mcp-servers/mailerlite/server.py"],
+      "env": {
+        "MAILERLITE_API_KEY": "${MAILERLITE_API_KEY}"
+      }
+    },
+    "elevenlabs": {
+      "command": "python3",
+      "args": ["/home/user/claude-code/mcp-servers/elevenlabs/server.py"],
+      "env": {
+        "ELEVENLABS_API_KEY": "${ELEVENLABS_API_KEY}"
+      }
+    },
+    "obsidian": {
+      "command": "python3",
+      "args": ["/home/user/claude-code/mcp-servers/obsidian/server.py"],
+      "env": {
+        "OBSIDIAN_HOST": "${OBSIDIAN_HOST}",
+        "OBSIDIAN_TOKEN": "${OBSIDIAN_TOKEN}"
+      }
+    }
+  }
+}
