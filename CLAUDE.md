@@ -37,6 +37,17 @@ sleep 4 && tailscale up
 
 ---
 
+## Ritual de Início de Sessão
+
+Ao começar uma nova sessão, o JARBAS deve:
+
+1. Reiniciar Tailscale no container (comando acima)
+2. Testar conectividade: `ssh samsung` (Samsung GalaxyBook)
+3. Ler memória do Drive: buscar "JARBAS - Memória de Sessão" mais recente
+4. Retomar pelo que ficou pendente
+
+---
+
 ## Cérebro do JARBAS
 
 Repositório principal: `weslleyramon001-png/claude-code`
@@ -47,6 +58,73 @@ Este repositório tem duas partes:
 2. **`plugins/`** — Coleção de plugins Claude Code (slash commands, agentes, hooks e skills) para estender as capacidades do Claude Code em qualquer projeto.
 
 Os arquivos raiz (`README.md`, `.github/`, `.devcontainer/`) fazem parte do upstream `anthropics/claude-code` do qual este fork é derivado.
+
+---
+
+### Contexto de Negócios
+
+#### Pony-Digital
+
+Marca/negócio digital de Ramon. Handle: `@w.ramon`.
+
+| Item | Detalhe |
+|---|---|
+| Plataforma de vendas | Kiwify |
+| Email marketing | MailerLite (funil de 7 emails — conteúdo pronto, falta configurar) |
+| Instagram | `@w.ramon` |
+| Vault Obsidian | Pasta "Pony Digital" no Google Drive |
+
+**Produtos digitais criados (prontos para vender):**
+
+| Produto | Status |
+|---|---|
+| Eletrônica de Ouro | ✅ Pronto — upload pendente no Kiwify |
+| Tráfego Pago para Iniciantes | ✅ Pronto |
+| Instagram que Vende | ✅ Pronto |
+| Finanças Pessoais do Zero | ✅ Pronto |
+| Copywriting que Converte | ✅ Pronto |
+
+#### Servlink Telecom
+
+Empresa de telecom (ISP) em Recife/PE onde Ramon trabalha.
+
+| Item | Detalhe |
+|---|---|
+| Servidor IXC | `https://ixc.servlinktelecom.com.br` |
+| CNPJ | `12.284.049/0001-00` |
+| Instagram | `@servlinktelecom` |
+| MCP integrado | ✅ IXC Servlink MCP (`server.py`) |
+| Acesso Adapta ONE | Via browser (sem API direta) |
+
+**Ferramentas MCP disponíveis no IXC:**
+clientes, contratos, faturas, radius/PPPoE, tickets/OS, consulta genérica
+
+> Token de acesso IXC: salvo no Google Drive (não commitar no repositório)
+
+---
+
+### Serviços e Ferramentas Conectados
+
+| Serviço | Acesso | Status |
+|---|---|---|
+| Google Drive (5TB) | MCP | ✅ Conectado |
+| Gmail | MCP | ✅ Conectado |
+| Google Calendar | MCP | ✅ Conectado |
+| Slack | MCP | ✅ Conectado |
+| Canva | MCP | ✅ Conectado |
+| Chrome | Extensão + MCP Playwright | ✅ Conectado |
+| VS Code | Extensão Claude | ✅ Conectado |
+| IXC Servlink | MCP (`server.py`) | ✅ Conectado |
+| Adapta ONE | Browser (sem API) | ⬜ Acesso manual |
+
+**Ferramentas instaladas no PC (Dell):**
+
+| Categoria | Ferramentas |
+|---|---|
+| Desenvolvimento | PowerShell 7, VS Code, Git, Node.js, Python 3.13, GitHub Desktop |
+| Vídeo | DaVinci Resolve, CapCut, FFmpeg, OBS Studio, Audacity, VLC, yt-dlp |
+| Armazenamento | OneDrive, Google Drive Desktop (5TB) |
+| IA | Claude Code CLI, Claude Chrome, Claude VS Code, ChatGPT Desktop |
 
 ---
 
@@ -87,7 +165,7 @@ Os arquivos raiz (`README.md`, `.github/`, `.devcontainer/`) fazem parte do upst
 | 🟡 | Configurar Tailscale do Samsung para iniciar automaticamente no boot |
 | ⬜ | Clonar voz JARVIS (Paul Bettany) no ElevenLabs |
 | ⬜ | MailerLite — configurar funil de 7 emails (conteúdo já escrito) |
-| ⬜ | Kiwify — publicar pack de planilhas (produto pronto, só falta upload) |
+| ⬜ | Kiwify — publicar os 5 produtos digitais da Pony-Digital |
 | ⬜ | Finalizar setup Samsung Lyvian (Obsidian, extensão Chrome, MCPs locais) |
 
 > Para renovar chave ElevenLabs: `elevenlabs.io` → avatar → Profile → API Keys → deletar chave antiga → Create API Key → colar no Railway Variables → confirmar `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
