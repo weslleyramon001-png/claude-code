@@ -48,12 +48,119 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 |---|---|
 | 🔴 URGENT | Renew ElevenLabs API key → update `ELEVENLABS_API_KEY` on Railway |
 | 🟡 Before 18/07 | Upgrade Railway trial to paid plan |
-| ⬜ | Tailscale on other notebooks (Samsung Lyvian etc.) |
+| ⬜ | Dell G7 — complete setup (see section below) |
+| ⬜ | Tailscale on Samsung Lyvian |
 | ⬜ | Clone JARVIS voice (Paul Bettany) on ElevenLabs |
 | ⬜ | MailerLite — set up 7-email funnel (content already written) |
 | ⬜ | Kiwify — publish spreadsheet pack (product ready, just needs upload) |
 
 > To renew ElevenLabs key: `elevenlabs.io` → avatar → Profile → API Keys → delete old key → Create API Key → paste in Railway Variables → confirm `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
+
+---
+
+## Machines & Infrastructure
+
+### Machine Inventory
+
+| Machine | Model | IP Tailscale | Status | User |
+|---|---|---|---|---|
+| Dell G7 | i7 \| 8GB RAM \| GTX 1050 Ti 4GB \| Win 11 | `100.82.120.121` | ⚠️ Setup in progress | ramon |
+| Vsap (W-RAMON) | i7-10870H \| 32GB RAM \| NVMe 1TB \| Win 11 Pro | work network | ✅ Fully configured | wesll |
+| Samsung GalaxyBook | Galaxy Book 2 360 | `100.124.202.29` | ✅ SSH + Tailscale OK | wesll |
+| Samsung Lyvian | Galaxy Book 3 360 | — | ⬜ Pending setup | lyvia |
+| Vsap container | Claude Code remote | `100.114.215.37` | ✅ Active (restart Tailscale each session) | — |
+
+### Vsap (W-RAMON) — Reference Environment (fully configured 03/06/2026)
+
+| Tool | Version |
+|---|---|
+| Node.js / npm | 24.16.0 / 11.13.0 |
+| pnpm | 11.5.1 |
+| Git | 2.54.0 |
+| VS Code | 1.121.0 |
+| Python | 3.13.13 |
+| PowerShell | 7.6.2 |
+| Vercel CLI | 54.7.1 |
+| DaVinci Resolve | 21 |
+| Obsidian | 1.12.7 |
+| VLC | 3.0.23 |
+| Chrome MCP | ✅ working |
+| Extensão Claude in Chrome | ⬜ confirm |
+
+### Dell G7 — Setup Checklist (execute in order)
+
+**Dell is the home machine / local AI workstation** — GTX 1050 Ti 4GB for ComfyUI / Stable Diffusion.
+
+#### 1. SSH (URGENT — do first for remote access)
+Open PowerShell as Administrator:
+```powershell
+# Enable OpenSSH Server
+Start-Service sshd
+Set-Service -Name sshd -StartupType 'Automatic'
+
+# Add Vsap container public key
+$key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDARoAUlYSMUERft2wtEYGuAYk6zOh/zJncy3M9lMVW5 claude-code-samsung"
+Add-Content -Path "C:\ProgramData\ssh\administrators_authorized_keys" -Value $key
+icacls "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /grant "Administradores:F" /grant "SYSTEM:F"
+```
+Test from container: `ssh ramon@100.82.120.121`
+
+#### 2. GPU & AI Core
+- [ ] Driver NVIDIA + GeForce Experience
+- [ ] ComfyUI at `D:\ComfyUI`
+
+#### 3. Development Tools (same as Vsap)
+- [ ] Node.js (v24+) + npm
+- [ ] pnpm (`npm i -g pnpm`)
+- [ ] Git
+- [ ] VS Code
+- [ ] Windows Terminal
+- [ ] Python 3.13
+- [ ] PowerShell 7
+- [ ] Vercel CLI (`npm i -g vercel`)
+
+#### 4. Apps
+- [ ] DaVinci Resolve 21
+- [ ] Obsidian 1.12.7
+- [ ] VLC
+- [ ] Chrome MCP extension
+- [ ] Extensão Claude in Chrome
+
+#### 5. Obsidian — Local REST API Plugin
+1. Obsidian → Settings → Community Plugins → disable Safe Mode
+2. Search: **Local REST API** → Install & enable
+3. Copy the generated token from plugin settings
+4. Save as `OBSIDIAN_TOKEN` in system environment variables
+5. Save token in Drive: `🔑 Chaves e Tokens - JARBAS.md`
+6. MCP `obsidian` already configured with IP `100.82.120.121:27123`
+
+#### 6. Environment Variables (PowerShell as Admin)
+```powershell
+[System.Environment]::SetEnvironmentVariable("RAILWAY_API_TOKEN", "SEU_TOKEN", "Machine")
+[System.Environment]::SetEnvironmentVariable("MAILERLITE_API_KEY", "SEU_TOKEN", "Machine")
+[System.Environment]::SetEnvironmentVariable("ELEVENLABS_API_KEY", "SEU_TOKEN", "Machine")
+[System.Environment]::SetEnvironmentVariable("OBSIDIAN_HOST", "http://localhost:27123", "Machine")
+[System.Environment]::SetEnvironmentVariable("OBSIDIAN_TOKEN", "SEU_TOKEN", "Machine")
+```
+> On Dell, `OBSIDIAN_HOST` is `localhost` (not Tailscale IP)
+
+#### 7. Get Railway API Token
+1. `railway.app` → Account Settings → Tokens → Create Token
+2. Set as `RAILWAY_API_TOKEN` env var (step 6 above)
+3. Save in Drive: `🔑 Chaves e Tokens - JARBAS.md`
+
+#### 8. Future / Optional
+- [ ] Upgrade hardware — 32GB RAM + 1TB NVMe
+- [ ] Thunderbolt — verify if Dell G7 supports eGPU
+- [ ] MCP Kiwify — create webhook receiver in JARBAS backend (no public API)
+- [ ] MCP Instagram — Meta for Developers app + Graph API + `mcp-servers/instagram/server.py`
+
+### Samsung GalaxyBook — Pending
+- [ ] Configure Tailscale to auto-start on boot:
+```bash
+sudo systemctl enable tailscaled
+sudo systemctl start tailscaled
+```
 
 ---
 
