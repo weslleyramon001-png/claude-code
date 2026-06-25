@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "railway": {
+      "command": "python3",
+      "args": ["/home/user/claude-code/mcp-servers/railway/server.py"],
+      "env": {
+        "RAILWAY_API_TOKEN": "${RAILWAY_API_TOKEN}"
+      }
+    }
+  }
+}

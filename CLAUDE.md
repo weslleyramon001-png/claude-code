@@ -107,6 +107,7 @@ Empresa de telecom (ISP) em Recife/PE onde Ramon trabalha.
 | Chrome | Extensão + MCP Playwright | ✅ Conectado |
 | VS Code | Extensão Claude | ✅ Conectado |
 | IXC Servlink | MCP (`server.py`) | ✅ Conectado |
+| Railway | MCP (`mcp-servers/railway/server.py`) | ✅ Configurado — requer `RAILWAY_API_TOKEN` |
 | Adapta ONE | Browser (sem API) | ⬜ Acesso manual |
 
 **Ferramentas instaladas no Dell:**
