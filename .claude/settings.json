@@ -20,6 +20,14 @@
       "env": {
         "ELEVENLABS_API_KEY": "${ELEVENLABS_API_KEY}"
       }
+    },
+    "obsidian": {
+      "command": "python3",
+      "args": ["/home/user/claude-code/mcp-servers/obsidian/server.py"],
+      "env": {
+        "OBSIDIAN_HOST": "${OBSIDIAN_HOST}",
+        "OBSIDIAN_TOKEN": "${OBSIDIAN_TOKEN}"
+      }
     }
   }
 }
