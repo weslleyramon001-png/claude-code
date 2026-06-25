@@ -4,192 +4,237 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## Repository Overview
+## Identidade do Usuário
 
-This repository has two distinct parts:
-
-1. **`jarbas-backend/`** — A FastAPI Python backend for JARBAS ("Just A Rather Brilliant Autonomous System"), a personal AI assistant for Weslley Ramon built on the Anthropic API with tools, memory, voice, and browser capabilities.
-2. **`plugins/`** — A collection of Claude Code plugins (custom slash commands, agents, hooks, and skills) for extending Claude Code's capabilities in any project.
-
-The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the upstream `anthropics/claude-code` repository that this fork is based on.
+- **Sempre chamar de Ramon** — nunca Weslley ou outro nome
+- Nome completo: Weslley Ramon Cavalcanti da Silva
+- Email: weslleyramon001@gmail.com
+- GitHub: weslleyramon001-png
+- Estilo: comunicação direta e objetiva, gosta de aprender fazendo
+- **Idioma: sempre responder em português do Brasil**
 
 ---
 
-## JARBAS — Production Status
+## Estado do Ambiente (25/06/2026)
 
-**JARBAS is live and deployed on Railway.**
+| Máquina | Status | IP Tailscale | Usuário SSH |
+|---|---|---|---|
+| Dell (Ramon) | ✅ Tailscale OK | `100.82.120.121` | SSH pendente |
+| Samsung GalaxyBook | ✅ SSH + Tailscale OK | `100.124.202.29` | `wesll` (alias `ssh samsung`) |
+| Samsung Lyvian | ⬜ Setup parcial | — | `lyvia` |
+| Container (Claude) | ✅ Tailscale OK | `100.114.215.37` | — (reiniciar a cada sessão) |
 
-| Item | Value |
+**Chave SSH pública (container → notebooks):**
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDARoAUlYSMUERft2wtEYGuAYk6zOh/zJncy3M9lMVW5 claude-code-samsung
+```
+
+**Para reiniciar Tailscale no container:**
+```bash
+tailscaled --state=/tmp/tailscale-state --tun=userspace-networking &
+sleep 4 && tailscale up
+```
+
+---
+
+## Cérebro do JARBAS
+
+Repositório principal: `weslleyramon001-png/claude-code`
+
+Este repositório tem duas partes:
+
+1. **`jarbas-backend/`** — Backend FastAPI do JARBAS (Just A Rather Brilliant Autonomous System), assistente de IA pessoal do Ramon, construído sobre a API Anthropic com ferramentas, memória, voz e navegador.
+2. **`plugins/`** — Coleção de plugins Claude Code (slash commands, agentes, hooks e skills) para estender as capacidades do Claude Code em qualquer projeto.
+
+Os arquivos raiz (`README.md`, `.github/`, `.devcontainer/`) fazem parte do upstream `anthropics/claude-code` do qual este fork é derivado.
+
+---
+
+### JARBAS — Status de Produção
+
+**JARBAS está live e deployado no Railway.**
+
+| Item | Valor |
 |---|---|
-| Production URL | `https://claude-code-production-62f5.up.railway.app` |
-| Railway project | `lively-youthfulness` |
-| Local interface | `D:\jarbas.html` (Edge on Dell) |
-| Railway trial expires | **18/07/2026** — upgrade to paid (~R$25/mês) before this date |
+| URL de Produção | `https://claude-code-production-62f5.up.railway.app` |
+| Projeto Railway | `lively-youthfulness` |
+| Interface local | `D:\jarbas.html` (Edge no Dell) |
+| Trial Railway expira | **18/07/2026** — fazer upgrade para pago (~R$25/mês) antes desta data |
 | Tailscale (Dell) | `100.82.120.121` |
 
-### Active Features (as of 22/06/2026)
+#### Funcionalidades Ativas (22/06/2026)
 
-| Feature | Status |
+| Funcionalidade | Status |
 |---|---|
 | Chat (Claude `claude-sonnet-4-6`) | ✅ Online |
-| Voice — ElevenLabs Daniel (`onwK4e9ZLuTAKqWW03F9`) | ⚠️ Key needs renewal (401 error) |
-| JARVIS animation (4 rings + waveform) | ✅ Online |
-| Persistent memory (SQLite) | ✅ Online |
-| Web search (Tavily) | ✅ Online |
-| Financial module (movements + balance) | ✅ Online |
-| Reminders (CRUD) | ✅ Online |
-| Bearer Token auth (`ACCESS_TOKEN`) | ✅ Configured on Railway |
-| Push notifications | ✅ Ready |
-| PWA (installable on mobile) | ✅ Ready |
+| Voz — ElevenLabs Daniel (`onwK4e9ZLuTAKqWW03F9`) | ⚠️ Chave precisa renovação (erro 401) |
+| Animação JARVIS (4 rings + waveform) | ✅ Online |
+| Memória persistente (SQLite) | ✅ Online |
+| Pesquisa web (Tavily) | ✅ Online |
+| Módulo financeiro (movimentos + saldo) | ✅ Online |
+| Lembretes (CRUD) | ✅ Online |
+| Auth Bearer Token (`ACCESS_TOKEN`) | ✅ Configurado no Railway |
+| Notificações Push | ✅ Pronto |
+| PWA (instalável no celular) | ✅ Pronto |
 
-### Pending Tasks
+#### Pendências
 
-| Priority | Task |
+| Prioridade | Tarefa |
 |---|---|
-| 🔴 URGENT | Renew ElevenLabs API key → update `ELEVENLABS_API_KEY` on Railway |
-| 🟡 Before 18/07 | Upgrade Railway trial to paid plan |
-| ⬜ | Tailscale on other notebooks (Samsung Lyvian etc.) |
-| ⬜ | Clone JARVIS voice (Paul Bettany) on ElevenLabs |
-| ⬜ | MailerLite — set up 7-email funnel (content already written) |
-| ⬜ | Kiwify — publish spreadsheet pack (product ready, just needs upload) |
+| 🔴 URGENTE | Renovar chave ElevenLabs → atualizar `ELEVENLABS_API_KEY` no Railway |
+| 🔴 URGENTE | Configurar SSH no Dell: instalar OpenSSH, adicionar chave pública em `C:\ProgramData\ssh\administrators_authorized_keys` |
+| 🟡 Antes de 18/07 | Fazer upgrade do trial Railway para plano pago |
+| 🟡 | Configurar Tailscale do Samsung para iniciar automaticamente no boot |
+| ⬜ | Clonar voz JARVIS (Paul Bettany) no ElevenLabs |
+| ⬜ | MailerLite — configurar funil de 7 emails (conteúdo já escrito) |
+| ⬜ | Kiwify — publicar pack de planilhas (produto pronto, só falta upload) |
+| ⬜ | Finalizar setup Samsung Lyvian (Obsidian, extensão Chrome, MCPs locais) |
 
-> To renew ElevenLabs key: `elevenlabs.io` → avatar → Profile → API Keys → delete old key → Create API Key → paste in Railway Variables → confirm `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
+> Para renovar chave ElevenLabs: `elevenlabs.io` → avatar → Profile → API Keys → deletar chave antiga → Create API Key → colar no Railway Variables → confirmar `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
+
+> SSH no Dell (PowerShell como Admin):
+> ```powershell
+> Start-Service sshd; Set-Service -Name sshd -StartupType 'Automatic'
+> $key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDARoAUlYSMUERft2wtEYGuAYk6zOh/zJncy3M9lMVW5 claude-code-samsung"
+> Add-Content -Path "C:\ProgramData\ssh\administrators_authorized_keys" -Value $key
+> icacls "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /grant "Administradores:F" /grant "SYSTEM:F"
+> ```
 
 ---
 
-## JARBAS Backend
+### JARBAS Backend
 
-### Running Locally
+#### Rodando Localmente
 
 ```bash
 cd jarbas-backend
-cp .env.example .env      # Fill in at minimum ANTHROPIC_API_KEY
+cp .env.example .env      # Preencher no mínimo ANTHROPIC_API_KEY
 pip install -r requirements.txt
-playwright install chromium   # Required for screenshot/browse tools
+playwright install chromium   # Necessário para ferramentas de screenshot/browse
 python main.py
 ```
 
-Server starts at `http://localhost:8000`. Verify with:
+Servidor inicia em `http://localhost:8000`. Verificar com:
 ```bash
 curl http://localhost:8000/health
 ```
 
-Alternative dev mode with auto-reload:
+Modo dev com auto-reload:
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Environment Variables
+#### Variáveis de Ambiente
 
-| Variable | Required | Description |
+| Variável | Obrigatório | Descrição |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | Powers all Claude calls |
-| `ELEVENLABS_API_KEY` | No | Enables `/voice` TTS endpoint |
-| `ELEVENLABS_VOICE_ID` | No | Default: `onwK4e9ZLuTAKqWW03F9` (Daniel) |
-| `TAVILY_API_KEY` | No | Enables `web_search` tool |
-| `ACCESS_TOKEN` | No | Bearer auth for all endpoints (open if unset) |
-| `DB_PATH` | No | SQLite path (default: `jarbas_memory.db`; use `/data/jarbas_memory.db` on Railway) |
-| `MAX_TOKENS` | No | Default: 2048 |
-| `HISTORY_LIMIT` | No | Messages kept in context; default: 20 |
+| `ANTHROPIC_API_KEY` | Sim | Alimenta todas as chamadas Claude |
+| `ELEVENLABS_API_KEY` | Não | Habilita endpoint `/voice` TTS |
+| `ELEVENLABS_VOICE_ID` | Não | Padrão: `onwK4e9ZLuTAKqWW03F9` (Daniel) |
+| `TAVILY_API_KEY` | Não | Habilita ferramenta `web_search` |
+| `ACCESS_TOKEN` | Não | Auth Bearer para todos os endpoints (aberto se não definido) |
+| `DB_PATH` | Não | Caminho SQLite (padrão: `jarbas_memory.db`; usar `/data/jarbas_memory.db` no Railway) |
+| `MAX_TOKENS` | Não | Padrão: 2048 |
+| `HISTORY_LIMIT` | Não | Mensagens mantidas no contexto; padrão: 20 |
 
-### Architecture
+#### Arquitetura
 
-**Module breakdown:**
+**Módulos:**
 
-- `main.py` — FastAPI app, all HTTP/WebSocket endpoints, and the `run_agent()` agentic loop
-- `config.py` — Single `Config` class (singleton `config`) that reads all env vars via `python-dotenv`
-- `memory.py` — SQLite via raw `sqlite3`. Auto-initialises all tables on import. Manages: messages, sessions, user_facts, movements (financial), reminders
-- `personality.py` — JARBAS system prompt and persona. `get_system_prompt(user_facts)` injects persisted user facts into the base prompt at runtime
-- `tools.py` — All agent tools as async functions + `format_tools_for_claude()` (returns Claude tools schema) + `process_tool_call()` dispatcher
-- `voice.py` — ElevenLabs TTS via `httpx`; returns `bytes` or `None`
-- `browser.py` — Playwright headless Chromium; `take_screenshot()` returns `{"base64": str, "url": str}` or `{"error": str}`; `browse_and_read()` returns page text
+- `main.py` — App FastAPI, todos os endpoints HTTP/WebSocket e o loop agêntico `run_agent()`
+- `config.py` — Classe `Config` singleton que lê todas as env vars via `python-dotenv`
+- `memory.py` — SQLite via `sqlite3` puro. Inicializa todas as tabelas na importação. Gerencia: mensagens, sessões, user_facts, movements (financeiro), reminders
+- `personality.py` — System prompt e persona do JARBAS. `get_system_prompt(user_facts)` injeta fatos persistidos do usuário no prompt base em runtime
+- `tools.py` — Todas as ferramentas do agente como funções async + `format_tools_for_claude()` (retorna schema de tools Claude) + dispatcher `process_tool_call()`
+- `voice.py` — ElevenLabs TTS via `httpx`; retorna `bytes` ou `None`
+- `browser.py` — Playwright Chromium headless; `take_screenshot()` retorna `{"base64": str, "url": str}` ou `{"error": str}`; `browse_and_read()` retorna texto da página
 
-**The agentic loop (`run_agent` in `main.py:110`):**
+**Loop agêntico (`run_agent` em `main.py:110`):**
 
-The loop runs up to 10 iterations to handle chained tool calls:
-1. Save user message → extract/persist facts from it (regex-based in `memory.py`)
-2. Load last N messages from SQLite as conversation history
-3. Build system prompt with injected user facts
-4. Call Claude (`claude-sonnet-4-6`, defined in `config.py:CLAUDE_MODEL`)
-5. If `stop_reason == "tool_use"`: dispatch tools, append results as a `user` turn, repeat
-6. On text response: save to DB and return
+O loop roda até 10 iterações para tratar tool calls encadeadas:
+1. Salvar mensagem do usuário → extrair/persistir fatos (regex em `memory.py`)
+2. Carregar últimas N mensagens do SQLite como histórico
+3. Construir system prompt com fatos do usuário injetados
+4. Chamar Claude (`claude-sonnet-4-6`, definido em `config.py:CLAUDE_MODEL`)
+5. Se `stop_reason == "tool_use"`: despachar ferramentas, anexar resultados como turno `user`, repetir
+6. Na resposta de texto: salvar no DB e retornar
 
-WebSocket (`/ws/{session_id}`) uses streaming mode — tokens are pushed as `{"type": "token", "content": "..."}` JSON frames; REST `/chat` uses non-streaming.
+WebSocket (`/ws/{session_id}`) usa modo streaming — tokens enviados como frames JSON `{"type": "token", "content": "..."}`; REST `/chat` usa não-streaming.
 
-**Memory design:**  
-`user_facts` table stores long-term facts extracted from user messages via regex patterns (Portuguese name/location/goal/business patterns). These are re-injected into the system prompt on every call, giving JARBAS persistent memory across sessions without RAG.
+**Design de memória:**
+Tabela `user_facts` armazena fatos de longo prazo extraídos das mensagens via regex (padrões em português de nome/local/objetivo/negócio). Re-injetados no system prompt a cada chamada, dando memória persistente entre sessões sem RAG.
 
-**Financial module:**  
-The `movements` table tracks income/expenses. Tools `add_movement`, `list_movements`, `get_balance` expose this to Claude. REST endpoints `/finance/balance` and `/finance/movements` also expose it directly.
+**Módulo financeiro:**
+Tabela `movements` rastreia receitas/despesas. Ferramentas `add_movement`, `list_movements`, `get_balance` expõem isso ao Claude. Endpoints REST `/finance/balance` e `/finance/movements` também expõem diretamente.
 
-### Deployment (Railway)
+#### Deploy (Railway)
 
-The `Dockerfile` in `jarbas-backend/` builds a `python:3.11-slim` image with Playwright Chromium dependencies. `railway.toml` configures the Railway deployment. Mount a volume at `/data` and set `DB_PATH=/data/jarbas_memory.db` for persistent memory.
+O `Dockerfile` em `jarbas-backend/` constrói imagem `python:3.11-slim` com dependências Playwright Chromium. `railway.toml` configura o deploy Railway. Montar volume em `/data` e definir `DB_PATH=/data/jarbas_memory.db` para memória persistente.
 
-### API Endpoints Summary
+#### Endpoints da API
 
-| Method | Path | Description |
+| Método | Caminho | Descrição |
 |---|---|---|
-| GET | `/health` | Health check (no auth) |
-| GET | `/status` | Full service status dashboard (no auth) |
-| POST | `/chat` | Send message, get response (REST, non-streaming) |
-| GET | `/history` | Conversation history for a session |
-| POST | `/clear` | Clear session history |
+| GET | `/health` | Health check (sem auth) |
+| GET | `/status` | Dashboard de status completo (sem auth) |
+| POST | `/chat` | Enviar mensagem, receber resposta (REST, não-streaming) |
+| GET | `/history` | Histórico de conversa de uma sessão |
+| POST | `/clear` | Limpar histórico de sessão |
 | POST | `/voice` | Text-to-speech (ElevenLabs) |
-| GET | `/export/{session_id}` | Export history as JSON or TXT |
-| GET | `/finance/balance` | Financial balance summary |
-| GET | `/finance/movements` | Financial movement history |
-| GET | `/reminders` | List reminders |
-| POST | `/reminders` | Create reminder |
-| PATCH | `/reminders/{id}/complete` | Mark reminder complete |
-| WS | `/ws/{session_id}` | Streaming WebSocket |
+| GET | `/export/{session_id}` | Exportar histórico como JSON ou TXT |
+| GET | `/finance/balance` | Resumo do saldo financeiro |
+| GET | `/finance/movements` | Histórico de movimentos financeiros |
+| GET | `/reminders` | Listar lembretes |
+| POST | `/reminders` | Criar lembrete |
+| PATCH | `/reminders/{id}/complete` | Marcar lembrete como concluído |
+| WS | `/ws/{session_id}` | WebSocket streaming |
 
 ---
 
-## Claude Code Plugins
+### Claude Code Plugins
 
-Located in `plugins/`, each plugin follows this structure:
+Localizados em `plugins/`, cada plugin segue esta estrutura:
 
 ```
 plugin-name/
-├── .claude-plugin/plugin.json   # Plugin metadata
+├── .claude-plugin/plugin.json   # Metadados do plugin
 ├── commands/                    # Slash commands (*.md)
-├── agents/                      # Specialized subagents (*.md)
-├── skills/                      # Auto-invoked skills (SKILL.md)
+├── agents/                      # Subagentes especializados (*.md)
+├── skills/                      # Skills auto-invocadas (SKILL.md)
 ├── hooks/                       # Event handlers
 └── README.md
 ```
 
-### Available Plugins
+#### Plugins Disponíveis
 
-| Plugin | What it does |
+| Plugin | O que faz |
 |---|---|
-| `agent-sdk-dev` | `/new-sdk-app` command + validators for Claude Agent SDK projects |
-| `claude-opus-4-5-migration` | Migrates model strings and beta headers to Opus 4.5 |
-| `code-review` | `/code-review` — multi-agent PR review with confidence scoring |
-| `commit-commands` | `/commit`, `/commit-push-pr`, `/clean_gone` — git workflow automation |
-| `explanatory-output-style` | SessionStart hook that adds educational context |
-| `feature-dev` | `/feature-dev` — 7-phase guided feature development workflow |
-| `frontend-design` | Auto-invoked skill for production-grade frontend design guidance |
-| `hookify` | `/hookify` — creates custom hooks from conversation analysis |
-| `learning-output-style` | SessionStart hook that encourages meaningful code contributions |
-| `plugin-dev` | `/plugin-dev:create-plugin` — 8-phase guided plugin creation |
-| `pr-review-toolkit` | `/pr-review-toolkit:review-pr` — specialized PR review agents |
-| `ralph-wiggum` | `/ralph-loop` — iterative autonomous loops with stop-hook interception |
-| `security-guidance` | PreToolUse hook that warns on 9 security patterns |
+| `agent-sdk-dev` | Comando `/new-sdk-app` + validadores para projetos Claude Agent SDK |
+| `claude-opus-4-5-migration` | Migra strings de modelo e beta headers para Opus 4.5 |
+| `code-review` | `/code-review` — revisão de PR multi-agente com pontuação de confiança |
+| `commit-commands` | `/commit`, `/commit-push-pr`, `/clean_gone` — automação de workflow git |
+| `explanatory-output-style` | Hook SessionStart que adiciona contexto educacional |
+| `feature-dev` | `/feature-dev` — workflow guiado de desenvolvimento de feature em 7 fases |
+| `frontend-design` | Skill auto-invocada para orientação de design frontend em produção |
+| `hookify` | `/hookify` — cria hooks customizados a partir de análise da conversa |
+| `learning-output-style` | Hook SessionStart que incentiva contribuições de código significativas |
+| `plugin-dev` | `/plugin-dev:create-plugin` — criação guiada de plugin em 8 fases |
+| `pr-review-toolkit` | `/pr-review-toolkit:review-pr` — agentes especializados em revisão de PR |
+| `ralph-wiggum` | `/ralph-loop` — loops autônomos iterativos com interceptação de stop-hook |
+| `security-guidance` | Hook PreToolUse que avisa sobre 9 padrões de segurança |
 
-### GitHub Actions
+#### GitHub Actions
 
-`.github/workflows/claude.yml` — Responds to `@claude` mentions in issues/PRs using `anthropics/claude-code-action@v1` with Workload Identity Federation (no static API key stored).
+`.github/workflows/claude.yml` — Responde a menções `@claude` em issues/PRs usando `anthropics/claude-code-action@v1` com Workload Identity Federation (sem API key estática armazenada).
 
 ---
 
-## Key Conventions
+### Convenções do Projeto
 
-- **Language:** All JARBAS user-facing text is in Brazilian Portuguese. Code, comments, and docstrings in `jarbas-backend/` are also in Portuguese. Plugin code is in English.
-- **Claude model:** `claude-sonnet-4-6` (set in `config.py`). When updating, change `CLAUDE_MODEL` there.
-- **No test suite** exists for `jarbas-backend/`. Validate manually with `curl` against the running server.
-- **SQLite connections** are opened and closed per-call (not pooled). WAL mode is enabled.
-- **Tool additions:** Add the async function to `tools.py`, register its schema in `format_tools_for_claude()`, and add a dispatch branch in `process_tool_call()`.
-- **Screenshot results** flow back to Claude as vision (`image` content blocks), not plain text — this is the only place the response content is non-text.
-- The `weslley_profile.md` file in `jarbas-backend/` is context documentation for JARBAS's persona/tools but is not loaded at runtime; facts are stored in SQLite instead.
+- **Idioma:** Todo texto do JARBAS voltado ao usuário é em português do Brasil. Código, comentários e docstrings em `jarbas-backend/` também em português. Código de plugins em inglês.
+- **Modelo Claude:** `claude-sonnet-4-6` (definido em `config.py`). Para atualizar, alterar `CLAUDE_MODEL` lá.
+- **Sem suite de testes** para `jarbas-backend/`. Validar manualmente com `curl` contra o servidor em execução.
+- **Conexões SQLite** abertas e fechadas por chamada (não pooled). Modo WAL habilitado.
+- **Adição de ferramentas:** Adicionar função async em `tools.py`, registrar schema em `format_tools_for_claude()`, e adicionar branch de dispatch em `process_tool_call()`.
+- **Resultados de screenshot** retornam ao Claude como visão (blocos de conteúdo `image`), não texto plano — este é o único lugar onde o conteúdo da resposta não é texto.
+- O arquivo `weslley_profile.md` em `jarbas-backend/` é documentação de contexto para a persona/ferramentas do JARBAS mas não é carregado em runtime; fatos são armazenados no SQLite.
