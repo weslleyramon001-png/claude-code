@@ -108,6 +108,8 @@ Empresa de telecom (ISP) em Recife/PE onde Ramon trabalha.
 | VS Code | Extensão Claude | ✅ Conectado |
 | IXC Servlink | MCP (`server.py`) | ✅ Conectado |
 | Railway | MCP (`mcp-servers/railway/server.py`) | ✅ Configurado — requer `RAILWAY_API_TOKEN` |
+| MailerLite | MCP (`mcp-servers/mailerlite/server.py`) | ✅ Configurado — requer `MAILERLITE_API_KEY` |
+| ElevenLabs | MCP (`mcp-servers/elevenlabs/server.py`) | ✅ Configurado — requer `ELEVENLABS_API_KEY` |
 | Adapta ONE | Browser (sem API) | ⬜ Acesso manual |
 
 **Ferramentas instaladas no Dell:**
