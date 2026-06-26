@@ -429,6 +429,327 @@ async def tool_delete_memory(fact_id: int) -> str:
     return f"Memória #{fact_id} não encontrada."
 
 
+# ── Social Media (Instagram + Facebook Graph API) ─────────────────────────
+
+import json as _json
+
+GRAPH_BASE = "https://graph.facebook.com/v19.0"
+
+_SETUP_GUIDE = (
+    "📋 **Configuração necessária — Meta Developer**\n\n"
+    "Para usar as ferramentas de redes sociais, Ramon precisa:\n\n"
+    "1. Criar um app em **developers.facebook.com** → *Meu App* → *Criar app*\n"
+    "2. Adicionar os produtos: **Instagram Graph API** e **Pages API**\n"
+    "3. Converter as contas Instagram para **Business** ou **Creator**\n"
+    "4. Vincular cada Instagram a uma Página do Facebook\n"
+    "5. Gerar um **User Access Token** com as permissões:\n"
+    "   `instagram_basic`, `instagram_content_publish`, `pages_manage_posts`, `pages_read_engagement`\n"
+    "6. Trocar por um **Long-Lived Token** (60 dias)\n"
+    "7. Configurar no Railway as variáveis de ambiente:\n"
+    "   ```\n"
+    '   INSTAGRAM_ACCOUNTS=[{"alias":"nome","account_id":"ID_IG","token":"EAA..."}]\n'
+    '   FACEBOOK_PAGES=[{"alias":"nome","page_id":"ID_PAGE","token":"EAA..."}]\n'
+    "   ```\n\n"
+    "Quando tiver as credenciais, é só configurar e os posts já funcionam automaticamente."
+)
+
+
+def _get_ig_accounts(config_str: str) -> list[dict]:
+    try:
+        return _json.loads(config_str) or []
+    except Exception:
+        return []
+
+
+def _find_account(accounts: list[dict], alias: str, id_key: str) -> dict | None:
+    alias_lower = alias.lower().strip()
+    for acc in accounts:
+        if acc.get("alias", "").lower() == alias_lower:
+            return acc
+    if accounts and alias_lower in ("default", "principal", "primeiro", ""):
+        return accounts[0]
+    return None
+
+
+async def tool_list_social_accounts(instagram_cfg: str, facebook_cfg: str) -> str:
+    ig_accounts = _get_ig_accounts(instagram_cfg)
+    fb_pages = _get_ig_accounts(facebook_cfg)
+
+    if not ig_accounts and not fb_pages:
+        return _SETUP_GUIDE
+
+    lines = ["📱 **Contas de Redes Sociais Configuradas**\n"]
+
+    if ig_accounts:
+        lines.append("**Instagram:**")
+        for acc in ig_accounts:
+            lines.append(f"  • `{acc.get('alias', '?')}` — ID: `{acc.get('account_id', '?')}`")
+
+    if fb_pages:
+        lines.append("\n**Facebook Pages:**")
+        for page in fb_pages:
+            lines.append(f"  • `{page.get('alias', '?')}` — ID: `{page.get('page_id', '?')}`")
+
+    lines.append(f"\n_Total: {len(ig_accounts)} Instagram(s), {len(fb_pages)} página(s) Facebook_")
+    return "\n".join(lines)
+
+
+async def tool_post_instagram(
+    account_alias: str,
+    caption: str,
+    image_url: str,
+    instagram_cfg: str,
+) -> str:
+    accounts = _get_ig_accounts(instagram_cfg)
+    if not accounts:
+        return _SETUP_GUIDE
+
+    acc = _find_account(accounts, account_alias, "account_id")
+    if not acc:
+        aliases = [a.get("alias") for a in accounts]
+        return f"Conta '{account_alias}' não encontrada. Contas disponíveis: {aliases}"
+
+    ig_id = acc["account_id"]
+    token = acc["token"]
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Step 1: create media container
+            container_resp = await client.post(
+                f"{GRAPH_BASE}/{ig_id}/media",
+                params={
+                    "image_url": image_url,
+                    "caption": caption,
+                    "access_token": token,
+                },
+            )
+            container_resp.raise_for_status()
+            container_id = container_resp.json().get("id")
+            if not container_id:
+                return f"Erro: API não retornou container ID. Resposta: {container_resp.text[:300]}"
+
+            # Step 2: publish container
+            publish_resp = await client.post(
+                f"{GRAPH_BASE}/{ig_id}/media_publish",
+                params={
+                    "creation_id": container_id,
+                    "access_token": token,
+                },
+            )
+            publish_resp.raise_for_status()
+            post_data = publish_resp.json()
+
+        post_id = post_data.get("id", "?")
+        return (
+            f"✅ **Post publicado no Instagram!**\n\n"
+            f"📸 Conta: `{acc.get('alias')}`\n"
+            f"📝 Legenda: {caption[:100]}{'...' if len(caption) > 100 else ''}\n"
+            f"🔗 Post ID: `{post_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        error_data = {}
+        try:
+            error_data = exc.response.json().get("error", {})
+        except Exception:
+            pass
+        msg = error_data.get("message", exc.response.text[:300])
+        code = error_data.get("code", exc.response.status_code)
+        return f"❌ Erro ao publicar no Instagram (código {code}): {msg}"
+    except Exception as exc:
+        return f"❌ Erro inesperado ao publicar no Instagram: {exc}"
+
+
+async def tool_post_facebook(
+    page_alias: str,
+    message: str,
+    image_url: str,
+    facebook_cfg: str,
+) -> str:
+    pages = _get_ig_accounts(facebook_cfg)
+    if not pages:
+        return _SETUP_GUIDE
+
+    page = _find_account(pages, page_alias, "page_id")
+    if not page:
+        aliases = [p.get("alias") for p in pages]
+        return f"Página '{page_alias}' não encontrada. Disponíveis: {aliases}"
+
+    page_id = page["page_id"]
+    token = page["token"]
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            if image_url:
+                # Post with photo
+                resp = await client.post(
+                    f"{GRAPH_BASE}/{page_id}/photos",
+                    params={
+                        "url": image_url,
+                        "caption": message,
+                        "access_token": token,
+                    },
+                )
+            else:
+                # Text-only post
+                resp = await client.post(
+                    f"{GRAPH_BASE}/{page_id}/feed",
+                    params={
+                        "message": message,
+                        "access_token": token,
+                    },
+                )
+            resp.raise_for_status()
+            post_data = resp.json()
+
+        post_id = post_data.get("id") or post_data.get("post_id", "?")
+        tipo = "foto" if image_url else "texto"
+        return (
+            f"✅ **Post publicado no Facebook!**\n\n"
+            f"📄 Página: `{page.get('alias')}`\n"
+            f"📝 Tipo: {tipo}\n"
+            f"💬 Mensagem: {message[:100]}{'...' if len(message) > 100 else ''}\n"
+            f"🔗 Post ID: `{post_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        error_data = {}
+        try:
+            error_data = exc.response.json().get("error", {})
+        except Exception:
+            pass
+        msg = error_data.get("message", exc.response.text[:300])
+        code = error_data.get("code", exc.response.status_code)
+        return f"❌ Erro ao publicar no Facebook (código {code}): {msg}"
+    except Exception as exc:
+        return f"❌ Erro inesperado ao publicar no Facebook: {exc}"
+
+
+async def tool_get_social_metrics(
+    account_alias: str,
+    platform: str,
+    instagram_cfg: str,
+    facebook_cfg: str,
+) -> str:
+    platform = platform.lower().strip()
+
+    if platform in ("instagram", "ig", "insta"):
+        accounts = _get_ig_accounts(instagram_cfg)
+        if not accounts:
+            return _SETUP_GUIDE
+        acc = _find_account(accounts, account_alias, "account_id")
+        if not acc:
+            return f"Conta '{account_alias}' não encontrada."
+        ig_id = acc["account_id"]
+        token = acc["token"]
+
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                # Account basic info
+                info_resp = await client.get(
+                    f"{GRAPH_BASE}/{ig_id}",
+                    params={
+                        "fields": "username,followers_count,follows_count,media_count,biography",
+                        "access_token": token,
+                    },
+                )
+                info_resp.raise_for_status()
+                info = info_resp.json()
+
+                # Recent media insights
+                media_resp = await client.get(
+                    f"{GRAPH_BASE}/{ig_id}/media",
+                    params={
+                        "fields": "id,like_count,comments_count,timestamp,media_type",
+                        "limit": 5,
+                        "access_token": token,
+                    },
+                )
+                media_resp.raise_for_status()
+                media_data = media_resp.json().get("data", [])
+
+            lines = [
+                f"📊 **Métricas Instagram — @{info.get('username', acc.get('alias'))}**\n",
+                f"👥 Seguidores: **{info.get('followers_count', '?'):,}**",
+                f"➡️ Seguindo: {info.get('follows_count', '?')}",
+                f"🖼️ Posts totais: {info.get('media_count', '?')}",
+            ]
+
+            if media_data:
+                lines.append("\n**Últimos 5 posts:**")
+                for m in media_data:
+                    ts = m.get("timestamp", "")[:10]
+                    likes = m.get("like_count", 0)
+                    comments = m.get("comments_count", 0)
+                    mtype = m.get("media_type", "POST")
+                    lines.append(f"  • {ts} [{mtype}] ❤️ {likes} 💬 {comments}")
+
+            return "\n".join(lines)
+
+        except httpx.HTTPStatusError as exc:
+            error_data = {}
+            try:
+                error_data = exc.response.json().get("error", {})
+            except Exception:
+                pass
+            msg = error_data.get("message", exc.response.text[:300])
+            return f"❌ Erro ao buscar métricas Instagram (HTTP {exc.response.status_code}): {msg}"
+        except Exception as exc:
+            return f"❌ Erro ao buscar métricas: {exc}"
+
+    elif platform in ("facebook", "fb", "face"):
+        pages = _get_ig_accounts(facebook_cfg)
+        if not pages:
+            return _SETUP_GUIDE
+        page = _find_account(pages, account_alias, "page_id")
+        if not page:
+            return f"Página '{account_alias}' não encontrada."
+        page_id = page["page_id"]
+        token = page["token"]
+
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                info_resp = await client.get(
+                    f"{GRAPH_BASE}/{page_id}",
+                    params={
+                        "fields": "name,fan_count,followers_count,posts.limit(5){message,created_time,likes.summary(true),comments.summary(true)}",
+                        "access_token": token,
+                    },
+                )
+                info_resp.raise_for_status()
+                info = info_resp.json()
+
+            lines = [
+                f"📊 **Métricas Facebook — {info.get('name', page.get('alias'))}**\n",
+                f"👥 Curtidas/Fãs: **{info.get('fan_count', info.get('followers_count', '?')):,}**",
+            ]
+            posts = info.get("posts", {}).get("data", [])
+            if posts:
+                lines.append("\n**Últimos 5 posts:**")
+                for p in posts:
+                    ts = p.get("created_time", "")[:10]
+                    msg_preview = (p.get("message") or "")[:60]
+                    likes = p.get("likes", {}).get("summary", {}).get("total_count", 0)
+                    comms = p.get("comments", {}).get("summary", {}).get("total_count", 0)
+                    lines.append(f"  • {ts} ❤️ {likes} 💬 {comms} — {msg_preview}")
+
+            return "\n".join(lines)
+
+        except httpx.HTTPStatusError as exc:
+            error_data = {}
+            try:
+                error_data = exc.response.json().get("error", {})
+            except Exception:
+                pass
+            msg = error_data.get("message", exc.response.text[:300])
+            return f"❌ Erro ao buscar métricas Facebook (HTTP {exc.response.status_code}): {msg}"
+        except Exception as exc:
+            return f"❌ Erro ao buscar métricas Facebook: {exc}"
+
+    else:
+        return f"Plataforma '{platform}' não reconhecida. Use 'instagram' ou 'facebook'."
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -723,6 +1044,90 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["fact_id"],
             },
         },
+        {
+            "name": "list_social_accounts",
+            "description": (
+                "Lista as contas de Instagram e páginas do Facebook configuradas no JARBAS. "
+                "Use quando Ramon perguntar quais contas de redes sociais estão ativas, "
+                "ou antes de postar para confirmar os aliases disponíveis."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "post_instagram",
+            "description": (
+                "Publica uma foto com legenda no Instagram usando a Graph API. "
+                "Use quando Ramon pedir para postar algo no Instagram. "
+                "Requer URL pública da imagem (hospedada online) e legenda."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "account_alias": {
+                        "type": "string",
+                        "description": "Alias da conta (ex: 'pony_digital'). Use 'default' para a primeira conta. Veja list_social_accounts.",
+                    },
+                    "caption": {
+                        "type": "string",
+                        "description": "Legenda do post. Pode incluir hashtags e emojis.",
+                    },
+                    "image_url": {
+                        "type": "string",
+                        "description": "URL pública da imagem (HTTPS). A Meta precisa conseguir acessar essa URL.",
+                    },
+                },
+                "required": ["account_alias", "caption", "image_url"],
+            },
+        },
+        {
+            "name": "post_facebook",
+            "description": (
+                "Publica uma mensagem (com ou sem foto) em uma Página do Facebook. "
+                "Use quando Ramon pedir para postar algo no Facebook."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "page_alias": {
+                        "type": "string",
+                        "description": "Alias da página (ex: 'pony_digital_fb'). Use 'default' para a primeira. Veja list_social_accounts.",
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Texto do post.",
+                    },
+                    "image_url": {
+                        "type": "string",
+                        "description": "URL pública de uma imagem (opcional). Deixe vazio para post só de texto.",
+                        "default": "",
+                    },
+                },
+                "required": ["page_alias", "message"],
+            },
+        },
+        {
+            "name": "get_social_metrics",
+            "description": (
+                "Consulta métricas de uma conta de Instagram ou página do Facebook: "
+                "seguidores, curtidas, comentários dos últimos posts, etc. "
+                "Use quando Ramon quiser saber como estão as redes sociais."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "account_alias": {
+                        "type": "string",
+                        "description": "Alias da conta/página. Use 'default' para a primeira configurada.",
+                    },
+                    "platform": {
+                        "type": "string",
+                        "description": "Plataforma: 'instagram' ou 'facebook'.",
+                        "enum": ["instagram", "facebook"],
+                    },
+                },
+                "required": ["account_alias", "platform"],
+            },
+        },
     ]
 
 
@@ -810,6 +1215,32 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
         elif tool_name == "delete_memory":
             return await tool_delete_memory(
                 fact_id=int(tool_input.get("fact_id", 0)),
+            )
+        elif tool_name == "list_social_accounts":
+            return await tool_list_social_accounts(
+                instagram_cfg=config.INSTAGRAM_ACCOUNTS,
+                facebook_cfg=config.FACEBOOK_PAGES,
+            )
+        elif tool_name == "post_instagram":
+            return await tool_post_instagram(
+                account_alias=tool_input.get("account_alias", "default"),
+                caption=tool_input.get("caption", ""),
+                image_url=tool_input.get("image_url", ""),
+                instagram_cfg=config.INSTAGRAM_ACCOUNTS,
+            )
+        elif tool_name == "post_facebook":
+            return await tool_post_facebook(
+                page_alias=tool_input.get("page_alias", "default"),
+                message=tool_input.get("message", ""),
+                image_url=tool_input.get("image_url", ""),
+                facebook_cfg=config.FACEBOOK_PAGES,
+            )
+        elif tool_name == "get_social_metrics":
+            return await tool_get_social_metrics(
+                account_alias=tool_input.get("account_alias", "default"),
+                platform=tool_input.get("platform", "instagram"),
+                instagram_cfg=config.INSTAGRAM_ACCOUNTS,
+                facebook_cfg=config.FACEBOOK_PAGES,
             )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
