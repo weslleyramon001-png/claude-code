@@ -48,7 +48,7 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 |---|---|
 | 🟡 Before 18/07 | Upgrade Railway trial to paid plan |
 | ⬜ | Dell G7 — finish remaining apps (DaVinci, Chrome extensions) |
-| ⬜ | Dell G7 — add `MAILERLITE_API_KEY` env var (after MailerLite onboarding) |
+| ✅ | Dell G7 — `MAILERLITE_API_KEY` configurada (26/06/2026) |
 | ⬜ | Tailscale on Samsung Lyvian |
 | ⬜ | Clone JARVIS voice (Paul Bettany) on ElevenLabs |
 | ⬜ | MailerLite — set up 7-email funnel (content already written) |
@@ -131,16 +131,7 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 | `ELEVENLABS_API_KEY` | ✅ Set (renewed 26/06/2026) |
 | `OBSIDIAN_HOST` | ✅ Set (`http://localhost:27123`) |
 | `OBSIDIAN_TOKEN` | ✅ Set |
-| `MAILERLITE_API_KEY` | ⬜ Pending — get from MailerLite → Integrations → API after onboarding |
-
-To add MailerLite key when ready (PowerShell as Admin):
-```powershell
-[System.Environment]::SetEnvironmentVariable("MAILERLITE_API_KEY", "SEU_TOKEN", "Machine")
-```
-Or via remote SSH from container:
-```bash
-ssh -o ProxyCommand="tailscale --socket=/tmp/tailscale.sock nc %h %p" "weslley ramon@100.82.120.121" "powershell -Command \"[System.Environment]::SetEnvironmentVariable('MAILERLITE_API_KEY', 'KEY_AQUI', 'Machine')\""
-```
+| `MAILERLITE_API_KEY` | ✅ Set (26/06/2026) |
 
 #### 7. Future / Optional
 - [ ] Upgrade hardware — 32GB RAM + 1TB NVMe
