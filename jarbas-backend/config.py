@@ -24,6 +24,9 @@ class Config:
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
+    # ── MailerLite ─────────────────────────────────────────────────────────
+    MAILERLITE_API_KEY: str = os.getenv("MAILERLITE_API_KEY", "")
+
     # ── Meta (Instagram + Facebook) ────────────────────────────────────────
     # JSON array: [{"alias": "pony_digital", "account_id": "17841400000", "token": "EAA..."}]
     INSTAGRAM_ACCOUNTS: str = os.getenv("INSTAGRAM_ACCOUNTS", "[]")
@@ -74,6 +77,7 @@ class Config:
             "claude": bool(self.ANTHROPIC_API_KEY),
             "voice": bool(self.ELEVENLABS_API_KEY),
             "web_search": bool(self.TAVILY_API_KEY),
+            "mailerlite": bool(self.MAILERLITE_API_KEY),
             "instagram": self.INSTAGRAM_ACCOUNTS != "[]",
             "facebook": self.FACEBOOK_PAGES != "[]",
             "version": self.APP_VERSION,

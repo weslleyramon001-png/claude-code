@@ -750,6 +750,196 @@ async def tool_get_social_metrics(
         return f"Plataforma '{platform}' não reconhecida. Use 'instagram' ou 'facebook'."
 
 
+# ── MailerLite ─────────────────────────────────────────────────────────────
+
+MAILERLITE_BASE = "https://connect.mailerlite.com/api"
+
+_ML_SETUP_GUIDE = (
+    "📋 **MailerLite não configurado**\n\n"
+    "Adicione a variável `MAILERLITE_API_KEY` no Railway com seu token JWT do MailerLite.\n"
+    "Acesse: mailerlite.com → Integrações → API → Criar token."
+)
+
+
+def _ml_headers(api_key: str) -> dict:
+    return {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json", "Accept": "application/json"}
+
+
+async def tool_mailerlite_stats(api_key: str) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(f"{MAILERLITE_BASE}/subscribers", headers=_ml_headers(api_key), params={"limit": 1})
+            resp.raise_for_status()
+            total = resp.json().get("meta", {}).get("total", "?")
+
+            camp_resp = await client.get(f"{MAILERLITE_BASE}/campaigns", headers=_ml_headers(api_key), params={"limit": 1})
+            camp_resp.raise_for_status()
+            total_camps = camp_resp.json().get("meta", {}).get("total", "?")
+
+        return (
+            f"📧 **MailerLite — Visão Geral**\n\n"
+            f"👥 Assinantes totais: **{total:,}**\n"
+            f"📣 Campanhas criadas: **{total_camps}**\n"
+        )
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida ou expirada."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao conectar ao MailerLite: {exc}"
+
+
+async def tool_mailerlite_list_subscribers(api_key: str, limit: int = 20, page: int = 1) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{MAILERLITE_BASE}/subscribers",
+                headers=_ml_headers(api_key),
+                params={"limit": limit, "page": page, "sort": "-created_at"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        subscribers = data.get("data", [])
+        meta = data.get("meta", {})
+        total = meta.get("total", len(subscribers))
+
+        if not subscribers:
+            return "Nenhum assinante encontrado."
+
+        lines = [f"📋 **Assinantes MailerLite** — {total:,} total (página {page})\n"]
+        for s in subscribers:
+            email = s.get("email", "?")
+            name = s.get("fields", {}).get("name", "") or s.get("name", "")
+            status = s.get("status", "?")
+            created = (s.get("created_at") or "")[:10]
+            status_emoji = "✅" if status == "active" else "⛔" if status == "unsubscribed" else "⏳"
+            name_part = f" — {name}" if name else ""
+            lines.append(f"{status_emoji} {email}{name_part} _{created}_")
+
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida ou expirada."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar assinantes: {exc}"
+
+
+async def tool_mailerlite_add_subscriber(api_key: str, email: str, name: str = "", group_id: str = "") -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    if not email or "@" not in email:
+        return "Email inválido."
+
+    payload: dict = {"email": email.strip().lower()}
+    if name:
+        payload["fields"] = {"name": name.strip()}
+    if group_id:
+        payload["groups"] = [group_id]
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(f"{MAILERLITE_BASE}/subscribers", headers=_ml_headers(api_key), json=payload)
+            if resp.status_code == 200:
+                action = "atualizado"
+            elif resp.status_code == 201:
+                action = "adicionado"
+            else:
+                resp.raise_for_status()
+                action = "processado"
+
+        name_part = f" ({name})" if name else ""
+        return f"✅ Assinante {action} com sucesso!\n\n📧 {email}{name_part}"
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida."
+        if exc.response.status_code == 422:
+            errors = exc.response.json().get("errors", {})
+            return f"❌ Dados inválidos: {errors}"
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao adicionar assinante: {exc}"
+
+
+async def tool_mailerlite_list_campaigns(api_key: str, limit: int = 10) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{MAILERLITE_BASE}/campaigns",
+                headers=_ml_headers(api_key),
+                params={"limit": limit, "sort": "-created_at"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        campaigns = data.get("data", [])
+        if not campaigns:
+            return "Nenhuma campanha encontrada no MailerLite."
+
+        lines = [f"📣 **Campanhas MailerLite** — {len(campaigns)} listadas\n"]
+        for c in campaigns:
+            name = c.get("name", "Sem nome")
+            status = c.get("status", "?")
+            ctype = c.get("type", "regular")
+            created = (c.get("created_at") or "")[:10]
+            stats = c.get("stats", {})
+            sent = stats.get("sent", 0)
+            opens = stats.get("opens_rate", {}).get("float", 0)
+            clicks = stats.get("clicks_rate", {}).get("float", 0)
+
+            status_map = {"sent": "✅ Enviada", "draft": "📝 Rascunho", "ready": "🟡 Pronta", "sending": "⏳ Enviando"}
+            status_label = status_map.get(status, status)
+
+            line = f"{status_label} **{name}** `[{ctype}]` _{created}_"
+            if sent:
+                line += f"\n   📊 {sent:,} enviados · 👁 {opens:.1%} aberturas · 🖱 {clicks:.1%} cliques"
+            lines.append(line)
+
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar campanhas: {exc}"
+
+
+async def tool_mailerlite_list_groups(api_key: str) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(f"{MAILERLITE_BASE}/groups", headers=_ml_headers(api_key), params={"limit": 50})
+            resp.raise_for_status()
+            groups = resp.json().get("data", [])
+
+        if not groups:
+            return "Nenhum grupo/lista criado no MailerLite ainda."
+
+        lines = ["📂 **Grupos/Listas MailerLite**\n"]
+        for g in groups:
+            gid = g.get("id", "?")
+            gname = g.get("name", "?")
+            count = g.get("active_count", 0)
+            lines.append(f"  • **{gname}** — {count:,} ativos · ID: `{gid}`")
+
+        lines.append("\n_Use o ID do grupo ao adicionar um assinante para segmentá-lo._")
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar grupos: {exc}"
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -1128,6 +1318,67 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["account_alias", "platform"],
             },
         },
+        {
+            "name": "mailerlite_stats",
+            "description": (
+                "Mostra um resumo geral do MailerLite: total de assinantes e campanhas. "
+                "Use quando Ramon perguntar como está o email marketing ou quantos assinantes tem."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "mailerlite_list_subscribers",
+            "description": (
+                "Lista os assinantes da lista de email do MailerLite com status e data de cadastro. "
+                "Use quando Ramon quiser ver quem está na lista, verificar um contato, etc."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Quantidade de assinantes a listar (padrão: 20).", "default": 20},
+                    "page": {"type": "integer", "description": "Página de resultados (padrão: 1).", "default": 1},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "mailerlite_add_subscriber",
+            "description": (
+                "Adiciona um novo assinante à lista do MailerLite. "
+                "Use quando Ramon quiser cadastrar alguém no email marketing ou no funil."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "email": {"type": "string", "description": "Email do assinante."},
+                    "name": {"type": "string", "description": "Nome do assinante (opcional).", "default": ""},
+                    "group_id": {"type": "string", "description": "ID do grupo/lista para segmentar (opcional). Use mailerlite_list_groups para ver IDs.", "default": ""},
+                },
+                "required": ["email"],
+            },
+        },
+        {
+            "name": "mailerlite_list_campaigns",
+            "description": (
+                "Lista as campanhas de email criadas no MailerLite com status e métricas de abertura/cliques. "
+                "Use quando Ramon quiser ver o desempenho dos emails disparados."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Quantidade de campanhas (padrão: 10).", "default": 10},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "mailerlite_list_groups",
+            "description": (
+                "Lista os grupos/listas de segmentação do MailerLite com ID e quantidade de assinantes. "
+                "Use para saber os IDs dos grupos antes de adicionar um assinante segmentado."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
     ]
 
 
@@ -1242,6 +1493,28 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
                 instagram_cfg=config.INSTAGRAM_ACCOUNTS,
                 facebook_cfg=config.FACEBOOK_PAGES,
             )
+        elif tool_name == "mailerlite_stats":
+            return await tool_mailerlite_stats(api_key=config.MAILERLITE_API_KEY)
+        elif tool_name == "mailerlite_list_subscribers":
+            return await tool_mailerlite_list_subscribers(
+                api_key=config.MAILERLITE_API_KEY,
+                limit=tool_input.get("limit", 20),
+                page=tool_input.get("page", 1),
+            )
+        elif tool_name == "mailerlite_add_subscriber":
+            return await tool_mailerlite_add_subscriber(
+                api_key=config.MAILERLITE_API_KEY,
+                email=tool_input.get("email", ""),
+                name=tool_input.get("name", ""),
+                group_id=tool_input.get("group_id", ""),
+            )
+        elif tool_name == "mailerlite_list_campaigns":
+            return await tool_mailerlite_list_campaigns(
+                api_key=config.MAILERLITE_API_KEY,
+                limit=tool_input.get("limit", 10),
+            )
+        elif tool_name == "mailerlite_list_groups":
+            return await tool_mailerlite_list_groups(api_key=config.MAILERLITE_API_KEY)
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
     except Exception as exc:
