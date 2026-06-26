@@ -139,12 +139,33 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 - [ ] MCP Kiwify — create webhook receiver in JARBAS backend (no public API)
 - [ ] MCP Instagram — Meta for Developers app + Graph API + `mcp-servers/instagram/server.py`
 
-### Samsung GalaxyBook — Pending
-- [ ] Configure Tailscale to auto-start on boot:
-```bash
-sudo systemctl enable tailscaled
-sudo systemctl start tailscaled
-```
+### Samsung Ramon (GalaxyBook 2 360) — Setup Pending (27/06/2026)
+
+IP Tailscale: `100.124.202.29` | Usuário: `wesll`
+
+- [ ] Tailscale auto-start no boot
+- [ ] SSH + chave do container
+- [ ] Node.js + pnpm + Git + Python + VS Code + Vercel
+- [ ] Obsidian + Local REST API plugin
+- [ ] Variáveis de ambiente (5 no total — mesmas do Dell)
+- [ ] Playwright em `C:\jarbas-scripts\`
+- [ ] Extensão Claude no Chrome
+
+### Samsung Lyvian (GalaxyBook 3 360) — Setup Pending (27/06/2026)
+
+IP Tailscale: pendente (precisa instalar primeiro) | Usuário: `lyvia`
+
+- [ ] Tailscale instalado e autenticado (tailscale.com/download)
+- [ ] SSH + chave do container
+- [ ] Node.js + pnpm + Git + Python + VS Code + Vercel
+- [ ] Obsidian + Local REST API plugin
+- [ ] Variáveis de ambiente (5 no total — mesmas do Dell)
+- [ ] Playwright em `C:\jarbas-scripts\`
+- [ ] Extensão Claude no Chrome
+
+> Roteiro completo salvo em:
+> - Google Drive: `🖥️ Setup Máquinas - Samsung Ramon e Samsung Lyvian.md`
+> - Obsidian (Dell): `06-Tecnologia-IA/Setup-Samsung-Ramon-e-Lyvian.md`
 
 ---
 
