@@ -429,6 +429,738 @@ async def tool_delete_memory(fact_id: int) -> str:
     return f"Memória #{fact_id} não encontrada."
 
 
+# ── Social Media (Instagram + Facebook Graph API) ─────────────────────────
+
+import json as _json
+
+GRAPH_BASE = "https://graph.facebook.com/v19.0"
+
+_SETUP_GUIDE = (
+    "📋 **Configuração necessária — Meta Developer**\n\n"
+    "Para usar as ferramentas de redes sociais, Ramon precisa:\n\n"
+    "1. Criar um app em **developers.facebook.com** → *Meu App* → *Criar app*\n"
+    "2. Adicionar os produtos: **Instagram Graph API** e **Pages API**\n"
+    "3. Converter as contas Instagram para **Business** ou **Creator**\n"
+    "4. Vincular cada Instagram a uma Página do Facebook\n"
+    "5. Gerar um **User Access Token** com as permissões:\n"
+    "   `instagram_basic`, `instagram_content_publish`, `pages_manage_posts`, `pages_read_engagement`\n"
+    "6. Trocar por um **Long-Lived Token** (60 dias)\n"
+    "7. Configurar no Railway as variáveis de ambiente:\n"
+    "   ```\n"
+    '   INSTAGRAM_ACCOUNTS=[{"alias":"nome","account_id":"ID_IG","token":"EAA..."}]\n'
+    '   FACEBOOK_PAGES=[{"alias":"nome","page_id":"ID_PAGE","token":"EAA..."}]\n'
+    "   ```\n\n"
+    "Quando tiver as credenciais, é só configurar e os posts já funcionam automaticamente."
+)
+
+
+def _get_ig_accounts(config_str: str) -> list[dict]:
+    try:
+        return _json.loads(config_str) or []
+    except Exception:
+        return []
+
+
+def _find_account(accounts: list[dict], alias: str, id_key: str) -> dict | None:
+    alias_lower = alias.lower().strip()
+    for acc in accounts:
+        if acc.get("alias", "").lower() == alias_lower:
+            return acc
+    if accounts and alias_lower in ("default", "principal", "primeiro", ""):
+        return accounts[0]
+    return None
+
+
+async def tool_list_social_accounts(instagram_cfg: str, facebook_cfg: str) -> str:
+    ig_accounts = _get_ig_accounts(instagram_cfg)
+    fb_pages = _get_ig_accounts(facebook_cfg)
+
+    if not ig_accounts and not fb_pages:
+        return _SETUP_GUIDE
+
+    lines = ["📱 **Contas de Redes Sociais Configuradas**\n"]
+
+    if ig_accounts:
+        lines.append("**Instagram:**")
+        for acc in ig_accounts:
+            lines.append(f"  • `{acc.get('alias', '?')}` — ID: `{acc.get('account_id', '?')}`")
+
+    if fb_pages:
+        lines.append("\n**Facebook Pages:**")
+        for page in fb_pages:
+            lines.append(f"  • `{page.get('alias', '?')}` — ID: `{page.get('page_id', '?')}`")
+
+    lines.append(f"\n_Total: {len(ig_accounts)} Instagram(s), {len(fb_pages)} página(s) Facebook_")
+    return "\n".join(lines)
+
+
+async def tool_post_instagram(
+    account_alias: str,
+    caption: str,
+    image_url: str,
+    instagram_cfg: str,
+) -> str:
+    accounts = _get_ig_accounts(instagram_cfg)
+    if not accounts:
+        return _SETUP_GUIDE
+
+    acc = _find_account(accounts, account_alias, "account_id")
+    if not acc:
+        aliases = [a.get("alias") for a in accounts]
+        return f"Conta '{account_alias}' não encontrada. Contas disponíveis: {aliases}"
+
+    ig_id = acc["account_id"]
+    token = acc["token"]
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Step 1: create media container
+            container_resp = await client.post(
+                f"{GRAPH_BASE}/{ig_id}/media",
+                params={
+                    "image_url": image_url,
+                    "caption": caption,
+                    "access_token": token,
+                },
+            )
+            container_resp.raise_for_status()
+            container_id = container_resp.json().get("id")
+            if not container_id:
+                return f"Erro: API não retornou container ID. Resposta: {container_resp.text[:300]}"
+
+            # Step 2: publish container
+            publish_resp = await client.post(
+                f"{GRAPH_BASE}/{ig_id}/media_publish",
+                params={
+                    "creation_id": container_id,
+                    "access_token": token,
+                },
+            )
+            publish_resp.raise_for_status()
+            post_data = publish_resp.json()
+
+        post_id = post_data.get("id", "?")
+        return (
+            f"✅ **Post publicado no Instagram!**\n\n"
+            f"📸 Conta: `{acc.get('alias')}`\n"
+            f"📝 Legenda: {caption[:100]}{'...' if len(caption) > 100 else ''}\n"
+            f"🔗 Post ID: `{post_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        error_data = {}
+        try:
+            error_data = exc.response.json().get("error", {})
+        except Exception:
+            pass
+        msg = error_data.get("message", exc.response.text[:300])
+        code = error_data.get("code", exc.response.status_code)
+        return f"❌ Erro ao publicar no Instagram (código {code}): {msg}"
+    except Exception as exc:
+        return f"❌ Erro inesperado ao publicar no Instagram: {exc}"
+
+
+async def tool_post_facebook(
+    page_alias: str,
+    message: str,
+    image_url: str,
+    facebook_cfg: str,
+) -> str:
+    pages = _get_ig_accounts(facebook_cfg)
+    if not pages:
+        return _SETUP_GUIDE
+
+    page = _find_account(pages, page_alias, "page_id")
+    if not page:
+        aliases = [p.get("alias") for p in pages]
+        return f"Página '{page_alias}' não encontrada. Disponíveis: {aliases}"
+
+    page_id = page["page_id"]
+    token = page["token"]
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            if image_url:
+                # Post with photo
+                resp = await client.post(
+                    f"{GRAPH_BASE}/{page_id}/photos",
+                    params={
+                        "url": image_url,
+                        "caption": message,
+                        "access_token": token,
+                    },
+                )
+            else:
+                # Text-only post
+                resp = await client.post(
+                    f"{GRAPH_BASE}/{page_id}/feed",
+                    params={
+                        "message": message,
+                        "access_token": token,
+                    },
+                )
+            resp.raise_for_status()
+            post_data = resp.json()
+
+        post_id = post_data.get("id") or post_data.get("post_id", "?")
+        tipo = "foto" if image_url else "texto"
+        return (
+            f"✅ **Post publicado no Facebook!**\n\n"
+            f"📄 Página: `{page.get('alias')}`\n"
+            f"📝 Tipo: {tipo}\n"
+            f"💬 Mensagem: {message[:100]}{'...' if len(message) > 100 else ''}\n"
+            f"🔗 Post ID: `{post_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        error_data = {}
+        try:
+            error_data = exc.response.json().get("error", {})
+        except Exception:
+            pass
+        msg = error_data.get("message", exc.response.text[:300])
+        code = error_data.get("code", exc.response.status_code)
+        return f"❌ Erro ao publicar no Facebook (código {code}): {msg}"
+    except Exception as exc:
+        return f"❌ Erro inesperado ao publicar no Facebook: {exc}"
+
+
+async def tool_get_social_metrics(
+    account_alias: str,
+    platform: str,
+    instagram_cfg: str,
+    facebook_cfg: str,
+) -> str:
+    platform = platform.lower().strip()
+
+    if platform in ("instagram", "ig", "insta"):
+        accounts = _get_ig_accounts(instagram_cfg)
+        if not accounts:
+            return _SETUP_GUIDE
+        acc = _find_account(accounts, account_alias, "account_id")
+        if not acc:
+            return f"Conta '{account_alias}' não encontrada."
+        ig_id = acc["account_id"]
+        token = acc["token"]
+
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                # Account basic info
+                info_resp = await client.get(
+                    f"{GRAPH_BASE}/{ig_id}",
+                    params={
+                        "fields": "username,followers_count,follows_count,media_count,biography",
+                        "access_token": token,
+                    },
+                )
+                info_resp.raise_for_status()
+                info = info_resp.json()
+
+                # Recent media insights
+                media_resp = await client.get(
+                    f"{GRAPH_BASE}/{ig_id}/media",
+                    params={
+                        "fields": "id,like_count,comments_count,timestamp,media_type",
+                        "limit": 5,
+                        "access_token": token,
+                    },
+                )
+                media_resp.raise_for_status()
+                media_data = media_resp.json().get("data", [])
+
+            lines = [
+                f"📊 **Métricas Instagram — @{info.get('username', acc.get('alias'))}**\n",
+                f"👥 Seguidores: **{info.get('followers_count', '?'):,}**",
+                f"➡️ Seguindo: {info.get('follows_count', '?')}",
+                f"🖼️ Posts totais: {info.get('media_count', '?')}",
+            ]
+
+            if media_data:
+                lines.append("\n**Últimos 5 posts:**")
+                for m in media_data:
+                    ts = m.get("timestamp", "")[:10]
+                    likes = m.get("like_count", 0)
+                    comments = m.get("comments_count", 0)
+                    mtype = m.get("media_type", "POST")
+                    lines.append(f"  • {ts} [{mtype}] ❤️ {likes} 💬 {comments}")
+
+            return "\n".join(lines)
+
+        except httpx.HTTPStatusError as exc:
+            error_data = {}
+            try:
+                error_data = exc.response.json().get("error", {})
+            except Exception:
+                pass
+            msg = error_data.get("message", exc.response.text[:300])
+            return f"❌ Erro ao buscar métricas Instagram (HTTP {exc.response.status_code}): {msg}"
+        except Exception as exc:
+            return f"❌ Erro ao buscar métricas: {exc}"
+
+    elif platform in ("facebook", "fb", "face"):
+        pages = _get_ig_accounts(facebook_cfg)
+        if not pages:
+            return _SETUP_GUIDE
+        page = _find_account(pages, account_alias, "page_id")
+        if not page:
+            return f"Página '{account_alias}' não encontrada."
+        page_id = page["page_id"]
+        token = page["token"]
+
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                info_resp = await client.get(
+                    f"{GRAPH_BASE}/{page_id}",
+                    params={
+                        "fields": "name,fan_count,followers_count,posts.limit(5){message,created_time,likes.summary(true),comments.summary(true)}",
+                        "access_token": token,
+                    },
+                )
+                info_resp.raise_for_status()
+                info = info_resp.json()
+
+            lines = [
+                f"📊 **Métricas Facebook — {info.get('name', page.get('alias'))}**\n",
+                f"👥 Curtidas/Fãs: **{info.get('fan_count', info.get('followers_count', '?')):,}**",
+            ]
+            posts = info.get("posts", {}).get("data", [])
+            if posts:
+                lines.append("\n**Últimos 5 posts:**")
+                for p in posts:
+                    ts = p.get("created_time", "")[:10]
+                    msg_preview = (p.get("message") or "")[:60]
+                    likes = p.get("likes", {}).get("summary", {}).get("total_count", 0)
+                    comms = p.get("comments", {}).get("summary", {}).get("total_count", 0)
+                    lines.append(f"  • {ts} ❤️ {likes} 💬 {comms} — {msg_preview}")
+
+            return "\n".join(lines)
+
+        except httpx.HTTPStatusError as exc:
+            error_data = {}
+            try:
+                error_data = exc.response.json().get("error", {})
+            except Exception:
+                pass
+            msg = error_data.get("message", exc.response.text[:300])
+            return f"❌ Erro ao buscar métricas Facebook (HTTP {exc.response.status_code}): {msg}"
+        except Exception as exc:
+            return f"❌ Erro ao buscar métricas Facebook: {exc}"
+
+    else:
+        return f"Plataforma '{platform}' não reconhecida. Use 'instagram' ou 'facebook'."
+
+
+# ── MailerLite ─────────────────────────────────────────────────────────────
+
+MAILERLITE_BASE = "https://connect.mailerlite.com/api"
+
+_ML_SETUP_GUIDE = (
+    "📋 **MailerLite não configurado**\n\n"
+    "Adicione a variável `MAILERLITE_API_KEY` no Railway com seu token JWT do MailerLite.\n"
+    "Acesse: mailerlite.com → Integrações → API → Criar token."
+)
+
+
+def _ml_headers(api_key: str) -> dict:
+    return {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json", "Accept": "application/json"}
+
+
+async def tool_mailerlite_stats(api_key: str) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(f"{MAILERLITE_BASE}/subscribers", headers=_ml_headers(api_key), params={"limit": 1})
+            resp.raise_for_status()
+            total = resp.json().get("meta", {}).get("total", "?")
+
+            camp_resp = await client.get(f"{MAILERLITE_BASE}/campaigns", headers=_ml_headers(api_key), params={"limit": 1})
+            camp_resp.raise_for_status()
+            total_camps = camp_resp.json().get("meta", {}).get("total", "?")
+
+        return (
+            f"📧 **MailerLite — Visão Geral**\n\n"
+            f"👥 Assinantes totais: **{total:,}**\n"
+            f"📣 Campanhas criadas: **{total_camps}**\n"
+        )
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida ou expirada."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao conectar ao MailerLite: {exc}"
+
+
+async def tool_mailerlite_list_subscribers(api_key: str, limit: int = 20, page: int = 1) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{MAILERLITE_BASE}/subscribers",
+                headers=_ml_headers(api_key),
+                params={"limit": limit, "page": page, "sort": "-created_at"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        subscribers = data.get("data", [])
+        meta = data.get("meta", {})
+        total = meta.get("total", len(subscribers))
+
+        if not subscribers:
+            return "Nenhum assinante encontrado."
+
+        lines = [f"📋 **Assinantes MailerLite** — {total:,} total (página {page})\n"]
+        for s in subscribers:
+            email = s.get("email", "?")
+            name = s.get("fields", {}).get("name", "") or s.get("name", "")
+            status = s.get("status", "?")
+            created = (s.get("created_at") or "")[:10]
+            status_emoji = "✅" if status == "active" else "⛔" if status == "unsubscribed" else "⏳"
+            name_part = f" — {name}" if name else ""
+            lines.append(f"{status_emoji} {email}{name_part} _{created}_")
+
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida ou expirada."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar assinantes: {exc}"
+
+
+async def tool_mailerlite_add_subscriber(api_key: str, email: str, name: str = "", group_id: str = "") -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    if not email or "@" not in email:
+        return "Email inválido."
+
+    payload: dict = {"email": email.strip().lower()}
+    if name:
+        payload["fields"] = {"name": name.strip()}
+    if group_id:
+        payload["groups"] = [group_id]
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(f"{MAILERLITE_BASE}/subscribers", headers=_ml_headers(api_key), json=payload)
+            if resp.status_code == 200:
+                action = "atualizado"
+            elif resp.status_code == 201:
+                action = "adicionado"
+            else:
+                resp.raise_for_status()
+                action = "processado"
+
+        name_part = f" ({name})" if name else ""
+        return f"✅ Assinante {action} com sucesso!\n\n📧 {email}{name_part}"
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida."
+        if exc.response.status_code == 422:
+            errors = exc.response.json().get("errors", {})
+            return f"❌ Dados inválidos: {errors}"
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao adicionar assinante: {exc}"
+
+
+async def tool_mailerlite_list_campaigns(api_key: str, limit: int = 10) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{MAILERLITE_BASE}/campaigns",
+                headers=_ml_headers(api_key),
+                params={"limit": limit, "sort": "-created_at"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        campaigns = data.get("data", [])
+        if not campaigns:
+            return "Nenhuma campanha encontrada no MailerLite."
+
+        lines = [f"📣 **Campanhas MailerLite** — {len(campaigns)} listadas\n"]
+        for c in campaigns:
+            name = c.get("name", "Sem nome")
+            status = c.get("status", "?")
+            ctype = c.get("type", "regular")
+            created = (c.get("created_at") or "")[:10]
+            stats = c.get("stats", {})
+            sent = stats.get("sent", 0)
+            opens = stats.get("opens_rate", {}).get("float", 0)
+            clicks = stats.get("clicks_rate", {}).get("float", 0)
+
+            status_map = {"sent": "✅ Enviada", "draft": "📝 Rascunho", "ready": "🟡 Pronta", "sending": "⏳ Enviando"}
+            status_label = status_map.get(status, status)
+
+            line = f"{status_label} **{name}** `[{ctype}]` _{created}_"
+            if sent:
+                line += f"\n   📊 {sent:,} enviados · 👁 {opens:.1%} aberturas · 🖱 {clicks:.1%} cliques"
+            lines.append(line)
+
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar campanhas: {exc}"
+
+
+async def tool_mailerlite_list_groups(api_key: str) -> str:
+    if not api_key:
+        return _ML_SETUP_GUIDE
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(f"{MAILERLITE_BASE}/groups", headers=_ml_headers(api_key), params={"limit": 50})
+            resp.raise_for_status()
+            groups = resp.json().get("data", [])
+
+        if not groups:
+            return "Nenhum grupo/lista criado no MailerLite ainda."
+
+        lines = ["📂 **Grupos/Listas MailerLite**\n"]
+        for g in groups:
+            gid = g.get("id", "?")
+            gname = g.get("name", "?")
+            count = g.get("active_count", 0)
+            lines.append(f"  • **{gname}** — {count:,} ativos · ID: `{gid}`")
+
+        lines.append("\n_Use o ID do grupo ao adicionar um assinante para segmentá-lo._")
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "❌ MAILERLITE_API_KEY inválida."
+        return f"❌ Erro MailerLite (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar grupos: {exc}"
+
+
+# ── YouTube Data API v3 ────────────────────────────────────────────────────
+
+YT_BASE = "https://www.googleapis.com/youtube/v3"
+
+_YT_SETUP_GUIDE = (
+    "📋 **YouTube não configurado**\n\n"
+    "Para ativar as ferramentas do YouTube, Ramon precisa:\n\n"
+    "1. Acesse **console.cloud.google.com** → Criar projeto\n"
+    "2. APIs e Serviços → Biblioteca → **YouTube Data API v3** → Ativar\n"
+    "3. Credenciais → Criar credenciais → **Chave de API**\n"
+    "4. Configure no Railway:\n"
+    "   ```\n"
+    "   YOUTUBE_API_KEY=AIzaSy...\n"
+    '   YOUTUBE_CHANNELS=[{"alias":"meu_canal","channel_id":"UCxxxxxxxx"}]\n'
+    "   ```\n\n"
+    "O plano gratuito do Google Cloud permite 10.000 unidades/dia — suficiente para consultas normais."
+)
+
+
+async def tool_youtube_channel_stats(api_key: str, channels_cfg: str, channel_alias: str) -> str:
+    if not api_key:
+        return _YT_SETUP_GUIDE
+
+    channels = _get_ig_accounts(channels_cfg)
+    if not channels:
+        return _YT_SETUP_GUIDE
+
+    ch = _find_account(channels, channel_alias, "channel_id")
+    if not ch:
+        aliases = [c.get("alias") for c in channels]
+        return f"Canal '{channel_alias}' não encontrado. Disponíveis: {aliases}"
+
+    channel_id = ch["channel_id"]
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{YT_BASE}/channels",
+                params={
+                    "part": "snippet,statistics",
+                    "id": channel_id,
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            items = resp.json().get("items", [])
+
+        if not items:
+            return f"Canal não encontrado (ID: `{channel_id}`). Verifique o YOUTUBE_CHANNELS."
+
+        item = items[0]
+        snippet = item.get("snippet", {})
+        stats = item.get("statistics", {})
+
+        name = snippet.get("title", ch.get("alias"))
+        subs = int(stats.get("subscriberCount", 0))
+        views = int(stats.get("viewCount", 0))
+        videos = int(stats.get("videoCount", 0))
+        hidden = stats.get("hiddenSubscriberCount", False)
+
+        sub_str = f"**{subs:,}**" if not hidden else "_oculto pelo canal_"
+
+        return (
+            f"📺 **YouTube — {name}**\n\n"
+            f"👥 Inscritos: {sub_str}\n"
+            f"👁️ Visualizações totais: **{views:,}**\n"
+            f"🎬 Vídeos publicados: **{videos:,}**\n"
+            f"🔗 Canal ID: `{channel_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 400:
+            return "❌ Chave da API inválida ou parâmetros incorretos."
+        if exc.response.status_code == 403:
+            return "❌ Quota excedida ou API não habilitada no Google Cloud."
+        return f"❌ Erro YouTube (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao buscar stats do canal: {exc}"
+
+
+async def tool_youtube_list_videos(api_key: str, channels_cfg: str, channel_alias: str, limit: int = 10) -> str:
+    if not api_key:
+        return _YT_SETUP_GUIDE
+
+    channels = _get_ig_accounts(channels_cfg)
+    if not channels:
+        return _YT_SETUP_GUIDE
+
+    ch = _find_account(channels, channel_alias, "channel_id")
+    if not ch:
+        aliases = [c.get("alias") for c in channels]
+        return f"Canal '{channel_alias}' não encontrado. Disponíveis: {aliases}"
+
+    channel_id = ch["channel_id"]
+    limit = max(1, min(limit, 50))
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            # Search for recent videos
+            search_resp = await client.get(
+                f"{YT_BASE}/search",
+                params={
+                    "part": "snippet",
+                    "channelId": channel_id,
+                    "order": "date",
+                    "type": "video",
+                    "maxResults": limit,
+                    "key": api_key,
+                },
+            )
+            search_resp.raise_for_status()
+            search_items = search_resp.json().get("items", [])
+
+            if not search_items:
+                return f"Nenhum vídeo encontrado no canal `{ch.get('alias')}`."
+
+            video_ids = ",".join(i["id"]["videoId"] for i in search_items if i.get("id", {}).get("videoId"))
+
+            # Get statistics for all videos in one request
+            stats_resp = await client.get(
+                f"{YT_BASE}/videos",
+                params={
+                    "part": "statistics",
+                    "id": video_ids,
+                    "key": api_key,
+                },
+            )
+            stats_resp.raise_for_status()
+            stats_map = {
+                v["id"]: v.get("statistics", {})
+                for v in stats_resp.json().get("items", [])
+            }
+
+        lines = [f"🎬 **Últimos {len(search_items)} vídeos — {ch.get('alias')}**\n"]
+        for item in search_items:
+            vid_id = item.get("id", {}).get("videoId", "")
+            title = item.get("snippet", {}).get("title", "Sem título")
+            published = (item.get("snippet", {}).get("publishedAt") or "")[:10]
+            vstats = stats_map.get(vid_id, {})
+            views = int(vstats.get("viewCount", 0))
+            likes = int(vstats.get("likeCount", 0))
+            comments = int(vstats.get("commentCount", 0))
+            lines.append(
+                f"▶️ **{title}**\n"
+                f"   📅 {published} · 👁 {views:,} · ❤️ {likes:,} · 💬 {comments:,}\n"
+                f"   ID: `{vid_id}`"
+            )
+
+        return "\n".join(lines)
+
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "❌ Quota excedida ou API não habilitada no Google Cloud."
+        return f"❌ Erro YouTube (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar vídeos: {exc}"
+
+
+async def tool_youtube_video_stats(api_key: str, video_id: str) -> str:
+    if not api_key:
+        return _YT_SETUP_GUIDE
+    if not video_id:
+        return "Informe o ID do vídeo. Ex: `dQw4w9WgXcQ` (parte final da URL do YouTube)."
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{YT_BASE}/videos",
+                params={
+                    "part": "snippet,statistics,contentDetails",
+                    "id": video_id,
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            items = resp.json().get("items", [])
+
+        if not items:
+            return f"Vídeo `{video_id}` não encontrado. Verifique o ID."
+
+        item = items[0]
+        snippet = item.get("snippet", {})
+        stats = item.get("statistics", {})
+        details = item.get("contentDetails", {})
+
+        title = snippet.get("title", "?")
+        published = (snippet.get("publishedAt") or "")[:10]
+        duration_raw = details.get("duration", "PT0S")
+
+        # Parse ISO 8601 duration (PT1H2M3S)
+        import re as _re
+        h = int((_re.search(r'(\d+)H', duration_raw) or [None, 0])[1])
+        m = int((_re.search(r'(\d+)M', duration_raw) or [None, 0])[1])
+        s = int((_re.search(r'(\d+)S', duration_raw) or [None, 0])[1])
+        duration_str = f"{h}h{m:02d}m{s:02d}s" if h else f"{m}m{s:02d}s"
+
+        views = int(stats.get("viewCount", 0))
+        likes = int(stats.get("likeCount", 0))
+        comments = int(stats.get("commentCount", 0))
+        favorites = int(stats.get("favoriteCount", 0))
+
+        return (
+            f"📊 **Estatísticas do Vídeo**\n\n"
+            f"🎬 **{title}**\n"
+            f"📅 Publicado: {published}\n"
+            f"⏱️ Duração: {duration_str}\n\n"
+            f"👁️ Visualizações: **{views:,}**\n"
+            f"❤️ Curtidas: **{likes:,}**\n"
+            f"💬 Comentários: **{comments:,}**\n"
+            f"⭐ Favoritos: {favorites:,}\n\n"
+            f"🔗 `https://youtu.be/{video_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "❌ Quota excedida ou API não habilitada."
+        return f"❌ Erro YouTube (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao buscar stats do vídeo: {exc}"
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -723,6 +1455,209 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["fact_id"],
             },
         },
+        {
+            "name": "list_social_accounts",
+            "description": (
+                "Lista as contas de Instagram e páginas do Facebook configuradas no JARBAS. "
+                "Use quando Ramon perguntar quais contas de redes sociais estão ativas, "
+                "ou antes de postar para confirmar os aliases disponíveis."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "post_instagram",
+            "description": (
+                "Publica uma foto com legenda no Instagram usando a Graph API. "
+                "Use quando Ramon pedir para postar algo no Instagram. "
+                "Requer URL pública da imagem (hospedada online) e legenda."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "account_alias": {
+                        "type": "string",
+                        "description": "Alias da conta (ex: 'pony_digital'). Use 'default' para a primeira conta. Veja list_social_accounts.",
+                    },
+                    "caption": {
+                        "type": "string",
+                        "description": "Legenda do post. Pode incluir hashtags e emojis.",
+                    },
+                    "image_url": {
+                        "type": "string",
+                        "description": "URL pública da imagem (HTTPS). A Meta precisa conseguir acessar essa URL.",
+                    },
+                },
+                "required": ["account_alias", "caption", "image_url"],
+            },
+        },
+        {
+            "name": "post_facebook",
+            "description": (
+                "Publica uma mensagem (com ou sem foto) em uma Página do Facebook. "
+                "Use quando Ramon pedir para postar algo no Facebook."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "page_alias": {
+                        "type": "string",
+                        "description": "Alias da página (ex: 'pony_digital_fb'). Use 'default' para a primeira. Veja list_social_accounts.",
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Texto do post.",
+                    },
+                    "image_url": {
+                        "type": "string",
+                        "description": "URL pública de uma imagem (opcional). Deixe vazio para post só de texto.",
+                        "default": "",
+                    },
+                },
+                "required": ["page_alias", "message"],
+            },
+        },
+        {
+            "name": "get_social_metrics",
+            "description": (
+                "Consulta métricas de uma conta de Instagram ou página do Facebook: "
+                "seguidores, curtidas, comentários dos últimos posts, etc. "
+                "Use quando Ramon quiser saber como estão as redes sociais."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "account_alias": {
+                        "type": "string",
+                        "description": "Alias da conta/página. Use 'default' para a primeira configurada.",
+                    },
+                    "platform": {
+                        "type": "string",
+                        "description": "Plataforma: 'instagram' ou 'facebook'.",
+                        "enum": ["instagram", "facebook"],
+                    },
+                },
+                "required": ["account_alias", "platform"],
+            },
+        },
+        {
+            "name": "mailerlite_stats",
+            "description": (
+                "Mostra um resumo geral do MailerLite: total de assinantes e campanhas. "
+                "Use quando Ramon perguntar como está o email marketing ou quantos assinantes tem."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "mailerlite_list_subscribers",
+            "description": (
+                "Lista os assinantes da lista de email do MailerLite com status e data de cadastro. "
+                "Use quando Ramon quiser ver quem está na lista, verificar um contato, etc."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Quantidade de assinantes a listar (padrão: 20).", "default": 20},
+                    "page": {"type": "integer", "description": "Página de resultados (padrão: 1).", "default": 1},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "mailerlite_add_subscriber",
+            "description": (
+                "Adiciona um novo assinante à lista do MailerLite. "
+                "Use quando Ramon quiser cadastrar alguém no email marketing ou no funil."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "email": {"type": "string", "description": "Email do assinante."},
+                    "name": {"type": "string", "description": "Nome do assinante (opcional).", "default": ""},
+                    "group_id": {"type": "string", "description": "ID do grupo/lista para segmentar (opcional). Use mailerlite_list_groups para ver IDs.", "default": ""},
+                },
+                "required": ["email"],
+            },
+        },
+        {
+            "name": "mailerlite_list_campaigns",
+            "description": (
+                "Lista as campanhas de email criadas no MailerLite com status e métricas de abertura/cliques. "
+                "Use quando Ramon quiser ver o desempenho dos emails disparados."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Quantidade de campanhas (padrão: 10).", "default": 10},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "mailerlite_list_groups",
+            "description": (
+                "Lista os grupos/listas de segmentação do MailerLite com ID e quantidade de assinantes. "
+                "Use para saber os IDs dos grupos antes de adicionar um assinante segmentado."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "youtube_channel_stats",
+            "description": (
+                "Mostra as estatísticas gerais de um canal do YouTube: inscritos, views totais e número de vídeos. "
+                "Use quando Ramon perguntar como está o canal, quantos inscritos tem, etc."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_alias": {
+                        "type": "string",
+                        "description": "Alias do canal (ex: 'pony_digital'). Use 'default' para o primeiro configurado.",
+                        "default": "default",
+                    },
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "youtube_list_videos",
+            "description": (
+                "Lista os vídeos mais recentes de um canal com visualizações, curtidas e comentários. "
+                "Use quando Ramon quiser ver o desempenho dos últimos vídeos."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_alias": {
+                        "type": "string",
+                        "description": "Alias do canal. Use 'default' para o primeiro configurado.",
+                        "default": "default",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Quantos vídeos listar (padrão: 10, máximo: 50).",
+                        "default": 10,
+                    },
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "youtube_video_stats",
+            "description": (
+                "Mostra estatísticas detalhadas de um vídeo específico do YouTube: views, curtidas, comentários e duração. "
+                "Use quando Ramon passar o ID ou link de um vídeo específico."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "description": "ID do vídeo (parte final da URL). Ex: para 'youtube.com/watch?v=dQw4w9WgXcQ' o ID é 'dQw4w9WgXcQ'.",
+                    },
+                },
+                "required": ["video_id"],
+            },
+        },
     ]
 
 
@@ -810,6 +1745,72 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
         elif tool_name == "delete_memory":
             return await tool_delete_memory(
                 fact_id=int(tool_input.get("fact_id", 0)),
+            )
+        elif tool_name == "list_social_accounts":
+            return await tool_list_social_accounts(
+                instagram_cfg=config.INSTAGRAM_ACCOUNTS,
+                facebook_cfg=config.FACEBOOK_PAGES,
+            )
+        elif tool_name == "post_instagram":
+            return await tool_post_instagram(
+                account_alias=tool_input.get("account_alias", "default"),
+                caption=tool_input.get("caption", ""),
+                image_url=tool_input.get("image_url", ""),
+                instagram_cfg=config.INSTAGRAM_ACCOUNTS,
+            )
+        elif tool_name == "post_facebook":
+            return await tool_post_facebook(
+                page_alias=tool_input.get("page_alias", "default"),
+                message=tool_input.get("message", ""),
+                image_url=tool_input.get("image_url", ""),
+                facebook_cfg=config.FACEBOOK_PAGES,
+            )
+        elif tool_name == "get_social_metrics":
+            return await tool_get_social_metrics(
+                account_alias=tool_input.get("account_alias", "default"),
+                platform=tool_input.get("platform", "instagram"),
+                instagram_cfg=config.INSTAGRAM_ACCOUNTS,
+                facebook_cfg=config.FACEBOOK_PAGES,
+            )
+        elif tool_name == "mailerlite_stats":
+            return await tool_mailerlite_stats(api_key=config.MAILERLITE_API_KEY)
+        elif tool_name == "mailerlite_list_subscribers":
+            return await tool_mailerlite_list_subscribers(
+                api_key=config.MAILERLITE_API_KEY,
+                limit=tool_input.get("limit", 20),
+                page=tool_input.get("page", 1),
+            )
+        elif tool_name == "mailerlite_add_subscriber":
+            return await tool_mailerlite_add_subscriber(
+                api_key=config.MAILERLITE_API_KEY,
+                email=tool_input.get("email", ""),
+                name=tool_input.get("name", ""),
+                group_id=tool_input.get("group_id", ""),
+            )
+        elif tool_name == "mailerlite_list_campaigns":
+            return await tool_mailerlite_list_campaigns(
+                api_key=config.MAILERLITE_API_KEY,
+                limit=tool_input.get("limit", 10),
+            )
+        elif tool_name == "mailerlite_list_groups":
+            return await tool_mailerlite_list_groups(api_key=config.MAILERLITE_API_KEY)
+        elif tool_name == "youtube_channel_stats":
+            return await tool_youtube_channel_stats(
+                api_key=config.YOUTUBE_API_KEY,
+                channels_cfg=config.YOUTUBE_CHANNELS,
+                channel_alias=tool_input.get("channel_alias", "default"),
+            )
+        elif tool_name == "youtube_list_videos":
+            return await tool_youtube_list_videos(
+                api_key=config.YOUTUBE_API_KEY,
+                channels_cfg=config.YOUTUBE_CHANNELS,
+                channel_alias=tool_input.get("channel_alias", "default"),
+                limit=tool_input.get("limit", 10),
+            )
+        elif tool_name == "youtube_video_stats":
+            return await tool_youtube_video_stats(
+                api_key=config.YOUTUBE_API_KEY,
+                video_id=tool_input.get("video_id", ""),
             )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."

@@ -24,6 +24,20 @@ class Config:
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
+    # ── MailerLite ─────────────────────────────────────────────────────────
+    MAILERLITE_API_KEY: str = os.getenv("MAILERLITE_API_KEY", "")
+
+    # ── YouTube Data API v3 ────────────────────────────────────────────────
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    # JSON array: [{"alias": "pony_digital", "channel_id": "UCxxxxxxxx"}]
+    YOUTUBE_CHANNELS: str = os.getenv("YOUTUBE_CHANNELS", "[]")
+
+    # ── Meta (Instagram + Facebook) ────────────────────────────────────────
+    # JSON array: [{"alias": "pony_digital", "account_id": "17841400000", "token": "EAA..."}]
+    INSTAGRAM_ACCOUNTS: str = os.getenv("INSTAGRAM_ACCOUNTS", "[]")
+    # JSON array: [{"alias": "pony_digital_fb", "page_id": "123456789", "token": "EAA..."}]
+    FACEBOOK_PAGES: str = os.getenv("FACEBOOK_PAGES", "[]")
+
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
     # Token de acesso para proteger a API. Deixe vazio para acesso aberto (dev local).
@@ -68,6 +82,10 @@ class Config:
             "claude": bool(self.ANTHROPIC_API_KEY),
             "voice": bool(self.ELEVENLABS_API_KEY),
             "web_search": bool(self.TAVILY_API_KEY),
+            "mailerlite": bool(self.MAILERLITE_API_KEY),
+            "youtube": bool(self.YOUTUBE_API_KEY),
+            "instagram": self.INSTAGRAM_ACCOUNTS != "[]",
+            "facebook": self.FACEBOOK_PAGES != "[]",
             "version": self.APP_VERSION,
         }
 

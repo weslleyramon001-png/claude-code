@@ -33,7 +33,7 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 | Feature | Status |
 |---|---|
 | Chat (Claude `claude-sonnet-4-6`) | ✅ Online |
-| Voice — ElevenLabs Daniel (`onwK4e9ZLuTAKqWW03F9`) | ⚠️ Key needs renewal (401 error) |
+| Voice — ElevenLabs Daniel (`onwK4e9ZLuTAKqWW03F9`) | ✅ Key renewed 26/06/2026 |
 | JARVIS animation (4 rings + waveform) | ✅ Online |
 | Persistent memory (SQLite) | ✅ Online |
 | Web search (Tavily) | ✅ Online |
@@ -47,14 +47,126 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 
 | Priority | Task |
 |---|---|
-| 🔴 URGENT | Renew ElevenLabs API key → update `ELEVENLABS_API_KEY` on Railway |
 | 🟡 Before 18/07 | Upgrade Railway trial to paid plan |
-| ⬜ | Tailscale on other notebooks (Samsung Lyvian etc.) |
+| ⬜ | Dell G7 — finish remaining apps (DaVinci, Chrome extensions) |
+| ✅ | Dell G7 — `MAILERLITE_API_KEY` configurada (26/06/2026) |
+| ⬜ | Tailscale on Samsung Lyvian |
 | ⬜ | Clone JARVIS voice (Paul Bettany) on ElevenLabs |
 | ⬜ | MailerLite — set up 7-email funnel (content already written) |
 | ⬜ | Kiwify — publish spreadsheet pack (product ready, just needs upload) |
 
 > To renew ElevenLabs key: `elevenlabs.io` → avatar → Profile → API Keys → delete old key → Create API Key → paste in Railway Variables → confirm `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
+
+---
+
+## Machines & Infrastructure
+
+### Machine Inventory
+
+| Machine | Model | IP Tailscale | Status | User |
+|---|---|---|---|---|
+| Dell G7 | i7 \| 8GB RAM \| GTX 1050 Ti 4GB \| Win 11 | `100.82.120.121` | ✅ Core setup done (26/06/2026) | weslley ramon |
+| Vsap (W-RAMON) | i7-10870H \| 32GB RAM \| NVMe 1TB \| Win 11 Pro | `100.103.155.45` (nome: `w-ramon`) | ✅ Fully configured (27/06/2026) | wesll |
+| Samsung GalaxyBook | Galaxy Book 2 360 | `100.124.202.29` | ✅ SSH + Tailscale OK | wesll |
+| Samsung Lyvian | Galaxy Book 3 360 | — | ⬜ Pending setup | lyvia |
+| Vsap container | Claude Code remote | `100.114.215.37` | ✅ Active (restart Tailscale each session) | — |
+
+### Vsap (W-RAMON) — Reference Environment (fully configured 03/06/2026)
+
+| Tool | Version |
+|---|---|
+| Node.js / npm | 24.16.0 / 11.13.0 |
+| pnpm | 11.5.1 |
+| Git | 2.54.0 |
+| VS Code | 1.121.0 |
+| Python | 3.13.13 |
+| PowerShell | 7.6.2 |
+| Vercel CLI | 54.7.1 |
+| DaVinci Resolve | 21 |
+| Obsidian | 1.12.7 |
+| VLC | 3.0.23 |
+| Chrome MCP | ✅ working |
+| Extensão Claude in Chrome | ⬜ confirm |
+
+### Dell G7 — Setup Checklist (execute in order)
+
+**Dell is the home machine / local AI workstation** — GTX 1050 Ti 4GB for ComfyUI / Stable Diffusion.
+
+#### 1. SSH ✅ DONE (26/06/2026)
+- OpenSSH Server installed and set to auto-start
+- Windows Firewall rule created for port 22
+- Container public key authorized in `C:\ProgramData\ssh\administrators_authorized_keys`
+- SSH user: `weslley ramon` (note the space — use quotes)
+- From container: `ssh -o ProxyCommand="tailscale --socket=/tmp/tailscale.sock nc %h %p" "weslley ramon@100.82.120.121"`
+
+#### 2. GPU & AI Core
+- [x] NVIDIA App already installed (detected via winget)
+- [ ] ComfyUI at `D:\ComfyUI`
+
+#### 3. Development Tools ✅ ALL DONE (26/06/2026)
+- [x] Node.js v24.18.0 + npm 11.16.0
+- [x] pnpm (installed via `npm i -g pnpm`)
+- [x] Git 2.54.0
+- [x] VS Code
+- [x] Python 3.13.14
+- [x] Vercel CLI (installed via `npm i -g vercel`)
+- [ ] Windows Terminal — install from Microsoft Store
+- [ ] PowerShell 7 — `winget install Microsoft.PowerShell`
+
+#### 4. Apps
+- [ ] DaVinci Resolve 21 — manual download: `blackmagicdesign.com/products/davinciresolve`
+- [x] Obsidian — installed
+- [ ] VLC — `winget install VideoLAN.VLC`
+- [ ] Chrome MCP extension — install from Chrome Web Store
+- [ ] Extensão Claude in Chrome — install from Chrome Web Store
+
+#### 5. Obsidian — Local REST API Plugin ✅ DONE (26/06/2026)
+- Plugin installed and enabled
+- Token saved as `OBSIDIAN_TOKEN` machine env var
+- `OBSIDIAN_HOST=http://localhost:27123` set
+
+#### 6. Environment Variables — Status
+| Variable | Status |
+|---|---|
+| `RAILWAY_API_TOKEN` | ✅ Set (`d914290f-fd5e-46d0-9baf-9bfacc75c10d`) |
+| `ELEVENLABS_API_KEY` | ✅ Set (renewed 26/06/2026) |
+| `OBSIDIAN_HOST` | ✅ Set (`http://localhost:27123`) |
+| `OBSIDIAN_TOKEN` | ✅ Set |
+| `MAILERLITE_API_KEY` | ✅ Set (26/06/2026) |
+
+#### 7. Future / Optional
+- [ ] Upgrade hardware — 32GB RAM + 1TB NVMe
+- [ ] Thunderbolt — verify if Dell G7 supports eGPU
+- [ ] MCP Kiwify — create webhook receiver in JARBAS backend (no public API)
+- [ ] MCP Instagram — Meta for Developers app + Graph API + `mcp-servers/instagram/server.py`
+
+### Samsung Ramon (GalaxyBook 2 360) — Setup Pending (27/06/2026)
+
+IP Tailscale: `100.124.202.29` | Usuário: `wesll`
+
+- [ ] Tailscale auto-start no boot
+- [ ] SSH + chave do container
+- [ ] Node.js + pnpm + Git + Python + VS Code + Vercel
+- [ ] Obsidian + Local REST API plugin
+- [ ] Variáveis de ambiente (5 no total — mesmas do Dell)
+- [ ] Playwright em `C:\jarbas-scripts\`
+- [ ] Extensão Claude no Chrome
+
+### Samsung Lyvian (GalaxyBook 3 360) — Setup Pending (27/06/2026)
+
+IP Tailscale: pendente (precisa instalar primeiro) | Usuário: `lyvia`
+
+- [ ] Tailscale instalado e autenticado (tailscale.com/download)
+- [ ] SSH + chave do container
+- [ ] Node.js + pnpm + Git + Python + VS Code + Vercel
+- [ ] Obsidian + Local REST API plugin
+- [ ] Variáveis de ambiente (5 no total — mesmas do Dell)
+- [ ] Playwright em `C:\jarbas-scripts\`
+- [ ] Extensão Claude no Chrome
+
+> Roteiro completo salvo em:
+> - Google Drive: `🖥️ Setup Máquinas - Samsung Ramon e Samsung Lyvian.md`
+> - Obsidian (Dell): `06-Tecnologia-IA/Setup-Samsung-Ramon-e-Lyvian.md`
 
 ---
 
