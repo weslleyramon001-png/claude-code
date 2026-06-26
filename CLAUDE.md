@@ -65,7 +65,7 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 | Machine | Model | IP Tailscale | Status | User |
 |---|---|---|---|---|
 | Dell G7 | i7 \| 8GB RAM \| GTX 1050 Ti 4GB \| Win 11 | `100.82.120.121` | ✅ Core setup done (26/06/2026) | weslley ramon |
-| Vsap (W-RAMON) | i7-10870H \| 32GB RAM \| NVMe 1TB \| Win 11 Pro | `100.103.155.45` (nome: `w-ramon`) | ✅ Tailscale instalado (27/06/2026) | wesll |
+| Vsap (W-RAMON) | i7-10870H \| 32GB RAM \| NVMe 1TB \| Win 11 Pro | `100.103.155.45` (nome: `w-ramon`) | ✅ SSH + Tailscale OK | wesll |
 | Samsung GalaxyBook | Galaxy Book 2 360 | `100.124.202.29` | ✅ SSH + Tailscale OK | wesll |
 | Samsung Lyvian | Galaxy Book 3 360 | — | ⬜ Pending setup | lyvia |
 | Vsap container | Claude Code remote | `100.114.215.37` | ✅ Active (restart Tailscale each session) | — |
