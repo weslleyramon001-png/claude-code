@@ -940,6 +940,227 @@ async def tool_mailerlite_list_groups(api_key: str) -> str:
         return f"❌ Erro ao listar grupos: {exc}"
 
 
+# ── YouTube Data API v3 ────────────────────────────────────────────────────
+
+YT_BASE = "https://www.googleapis.com/youtube/v3"
+
+_YT_SETUP_GUIDE = (
+    "📋 **YouTube não configurado**\n\n"
+    "Para ativar as ferramentas do YouTube, Ramon precisa:\n\n"
+    "1. Acesse **console.cloud.google.com** → Criar projeto\n"
+    "2. APIs e Serviços → Biblioteca → **YouTube Data API v3** → Ativar\n"
+    "3. Credenciais → Criar credenciais → **Chave de API**\n"
+    "4. Configure no Railway:\n"
+    "   ```\n"
+    "   YOUTUBE_API_KEY=AIzaSy...\n"
+    '   YOUTUBE_CHANNELS=[{"alias":"meu_canal","channel_id":"UCxxxxxxxx"}]\n'
+    "   ```\n\n"
+    "O plano gratuito do Google Cloud permite 10.000 unidades/dia — suficiente para consultas normais."
+)
+
+
+async def tool_youtube_channel_stats(api_key: str, channels_cfg: str, channel_alias: str) -> str:
+    if not api_key:
+        return _YT_SETUP_GUIDE
+
+    channels = _get_ig_accounts(channels_cfg)
+    if not channels:
+        return _YT_SETUP_GUIDE
+
+    ch = _find_account(channels, channel_alias, "channel_id")
+    if not ch:
+        aliases = [c.get("alias") for c in channels]
+        return f"Canal '{channel_alias}' não encontrado. Disponíveis: {aliases}"
+
+    channel_id = ch["channel_id"]
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{YT_BASE}/channels",
+                params={
+                    "part": "snippet,statistics",
+                    "id": channel_id,
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            items = resp.json().get("items", [])
+
+        if not items:
+            return f"Canal não encontrado (ID: `{channel_id}`). Verifique o YOUTUBE_CHANNELS."
+
+        item = items[0]
+        snippet = item.get("snippet", {})
+        stats = item.get("statistics", {})
+
+        name = snippet.get("title", ch.get("alias"))
+        subs = int(stats.get("subscriberCount", 0))
+        views = int(stats.get("viewCount", 0))
+        videos = int(stats.get("videoCount", 0))
+        hidden = stats.get("hiddenSubscriberCount", False)
+
+        sub_str = f"**{subs:,}**" if not hidden else "_oculto pelo canal_"
+
+        return (
+            f"📺 **YouTube — {name}**\n\n"
+            f"👥 Inscritos: {sub_str}\n"
+            f"👁️ Visualizações totais: **{views:,}**\n"
+            f"🎬 Vídeos publicados: **{videos:,}**\n"
+            f"🔗 Canal ID: `{channel_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 400:
+            return "❌ Chave da API inválida ou parâmetros incorretos."
+        if exc.response.status_code == 403:
+            return "❌ Quota excedida ou API não habilitada no Google Cloud."
+        return f"❌ Erro YouTube (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao buscar stats do canal: {exc}"
+
+
+async def tool_youtube_list_videos(api_key: str, channels_cfg: str, channel_alias: str, limit: int = 10) -> str:
+    if not api_key:
+        return _YT_SETUP_GUIDE
+
+    channels = _get_ig_accounts(channels_cfg)
+    if not channels:
+        return _YT_SETUP_GUIDE
+
+    ch = _find_account(channels, channel_alias, "channel_id")
+    if not ch:
+        aliases = [c.get("alias") for c in channels]
+        return f"Canal '{channel_alias}' não encontrado. Disponíveis: {aliases}"
+
+    channel_id = ch["channel_id"]
+    limit = max(1, min(limit, 50))
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            # Search for recent videos
+            search_resp = await client.get(
+                f"{YT_BASE}/search",
+                params={
+                    "part": "snippet",
+                    "channelId": channel_id,
+                    "order": "date",
+                    "type": "video",
+                    "maxResults": limit,
+                    "key": api_key,
+                },
+            )
+            search_resp.raise_for_status()
+            search_items = search_resp.json().get("items", [])
+
+            if not search_items:
+                return f"Nenhum vídeo encontrado no canal `{ch.get('alias')}`."
+
+            video_ids = ",".join(i["id"]["videoId"] for i in search_items if i.get("id", {}).get("videoId"))
+
+            # Get statistics for all videos in one request
+            stats_resp = await client.get(
+                f"{YT_BASE}/videos",
+                params={
+                    "part": "statistics",
+                    "id": video_ids,
+                    "key": api_key,
+                },
+            )
+            stats_resp.raise_for_status()
+            stats_map = {
+                v["id"]: v.get("statistics", {})
+                for v in stats_resp.json().get("items", [])
+            }
+
+        lines = [f"🎬 **Últimos {len(search_items)} vídeos — {ch.get('alias')}**\n"]
+        for item in search_items:
+            vid_id = item.get("id", {}).get("videoId", "")
+            title = item.get("snippet", {}).get("title", "Sem título")
+            published = (item.get("snippet", {}).get("publishedAt") or "")[:10]
+            vstats = stats_map.get(vid_id, {})
+            views = int(vstats.get("viewCount", 0))
+            likes = int(vstats.get("likeCount", 0))
+            comments = int(vstats.get("commentCount", 0))
+            lines.append(
+                f"▶️ **{title}**\n"
+                f"   📅 {published} · 👁 {views:,} · ❤️ {likes:,} · 💬 {comments:,}\n"
+                f"   ID: `{vid_id}`"
+            )
+
+        return "\n".join(lines)
+
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "❌ Quota excedida ou API não habilitada no Google Cloud."
+        return f"❌ Erro YouTube (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao listar vídeos: {exc}"
+
+
+async def tool_youtube_video_stats(api_key: str, video_id: str) -> str:
+    if not api_key:
+        return _YT_SETUP_GUIDE
+    if not video_id:
+        return "Informe o ID do vídeo. Ex: `dQw4w9WgXcQ` (parte final da URL do YouTube)."
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{YT_BASE}/videos",
+                params={
+                    "part": "snippet,statistics,contentDetails",
+                    "id": video_id,
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            items = resp.json().get("items", [])
+
+        if not items:
+            return f"Vídeo `{video_id}` não encontrado. Verifique o ID."
+
+        item = items[0]
+        snippet = item.get("snippet", {})
+        stats = item.get("statistics", {})
+        details = item.get("contentDetails", {})
+
+        title = snippet.get("title", "?")
+        published = (snippet.get("publishedAt") or "")[:10]
+        duration_raw = details.get("duration", "PT0S")
+
+        # Parse ISO 8601 duration (PT1H2M3S)
+        import re as _re
+        h = int((_re.search(r'(\d+)H', duration_raw) or [None, 0])[1])
+        m = int((_re.search(r'(\d+)M', duration_raw) or [None, 0])[1])
+        s = int((_re.search(r'(\d+)S', duration_raw) or [None, 0])[1])
+        duration_str = f"{h}h{m:02d}m{s:02d}s" if h else f"{m}m{s:02d}s"
+
+        views = int(stats.get("viewCount", 0))
+        likes = int(stats.get("likeCount", 0))
+        comments = int(stats.get("commentCount", 0))
+        favorites = int(stats.get("favoriteCount", 0))
+
+        return (
+            f"📊 **Estatísticas do Vídeo**\n\n"
+            f"🎬 **{title}**\n"
+            f"📅 Publicado: {published}\n"
+            f"⏱️ Duração: {duration_str}\n\n"
+            f"👁️ Visualizações: **{views:,}**\n"
+            f"❤️ Curtidas: **{likes:,}**\n"
+            f"💬 Comentários: **{comments:,}**\n"
+            f"⭐ Favoritos: {favorites:,}\n\n"
+            f"🔗 `https://youtu.be/{video_id}`"
+        )
+
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "❌ Quota excedida ou API não habilitada."
+        return f"❌ Erro YouTube (HTTP {exc.response.status_code}): {exc.response.text[:200]}"
+    except Exception as exc:
+        return f"❌ Erro ao buscar stats do vídeo: {exc}"
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -1379,6 +1600,64 @@ def format_tools_for_claude() -> list[dict]:
             ),
             "input_schema": {"type": "object", "properties": {}, "required": []},
         },
+        {
+            "name": "youtube_channel_stats",
+            "description": (
+                "Mostra as estatísticas gerais de um canal do YouTube: inscritos, views totais e número de vídeos. "
+                "Use quando Ramon perguntar como está o canal, quantos inscritos tem, etc."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_alias": {
+                        "type": "string",
+                        "description": "Alias do canal (ex: 'pony_digital'). Use 'default' para o primeiro configurado.",
+                        "default": "default",
+                    },
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "youtube_list_videos",
+            "description": (
+                "Lista os vídeos mais recentes de um canal com visualizações, curtidas e comentários. "
+                "Use quando Ramon quiser ver o desempenho dos últimos vídeos."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_alias": {
+                        "type": "string",
+                        "description": "Alias do canal. Use 'default' para o primeiro configurado.",
+                        "default": "default",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Quantos vídeos listar (padrão: 10, máximo: 50).",
+                        "default": 10,
+                    },
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "youtube_video_stats",
+            "description": (
+                "Mostra estatísticas detalhadas de um vídeo específico do YouTube: views, curtidas, comentários e duração. "
+                "Use quando Ramon passar o ID ou link de um vídeo específico."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "description": "ID do vídeo (parte final da URL). Ex: para 'youtube.com/watch?v=dQw4w9WgXcQ' o ID é 'dQw4w9WgXcQ'.",
+                    },
+                },
+                "required": ["video_id"],
+            },
+        },
     ]
 
 
@@ -1515,6 +1794,24 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "mailerlite_list_groups":
             return await tool_mailerlite_list_groups(api_key=config.MAILERLITE_API_KEY)
+        elif tool_name == "youtube_channel_stats":
+            return await tool_youtube_channel_stats(
+                api_key=config.YOUTUBE_API_KEY,
+                channels_cfg=config.YOUTUBE_CHANNELS,
+                channel_alias=tool_input.get("channel_alias", "default"),
+            )
+        elif tool_name == "youtube_list_videos":
+            return await tool_youtube_list_videos(
+                api_key=config.YOUTUBE_API_KEY,
+                channels_cfg=config.YOUTUBE_CHANNELS,
+                channel_alias=tool_input.get("channel_alias", "default"),
+                limit=tool_input.get("limit", 10),
+            )
+        elif tool_name == "youtube_video_stats":
+            return await tool_youtube_video_stats(
+                api_key=config.YOUTUBE_API_KEY,
+                video_id=tool_input.get("video_id", ""),
+            )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
     except Exception as exc:
