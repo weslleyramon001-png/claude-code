@@ -24,6 +24,11 @@ class Config:
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
+    # ── YouTube Data API ───────────────────────────────────────────────────
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    # JSON list: [{"alias": "ramon", "channel_id": "@weslleyramon6512"}]
+    YOUTUBE_CHANNELS: list = __import__("json").loads(os.getenv("YOUTUBE_CHANNELS", "[]"))
+
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
     # Token de acesso para proteger a API. Deixe vazio para acesso aberto (dev local).
