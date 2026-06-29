@@ -429,6 +429,136 @@ async def tool_delete_memory(fact_id: int) -> str:
     return f"Memória #{fact_id} não encontrada."
 
 
+# ── YouTube ────────────────────────────────────────────────────────────────
+
+async def get_youtube_channel_stats(channel_alias: str, api_key: str, channels_config: list) -> str:
+    if not api_key:
+        return "YouTube API não configurada. Adicione YOUTUBE_API_KEY no Railway."
+
+    channel_id = None
+    for ch in channels_config:
+        if ch.get("alias") == channel_alias:
+            channel_id = ch.get("channel_id")
+            break
+
+    if not channel_id:
+        aliases = [c.get("alias") for c in channels_config]
+        return f"Canal '{channel_alias}' não encontrado. Aliases disponíveis: {aliases}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            if channel_id.startswith("@"):
+                search_resp = await client.get(
+                    "https://www.googleapis.com/youtube/v3/search",
+                    params={"part": "snippet", "q": channel_id, "type": "channel", "key": api_key, "maxResults": 1},
+                )
+                search_resp.raise_for_status()
+                items = search_resp.json().get("items", [])
+                if not items:
+                    return f"Canal '{channel_id}' não encontrado no YouTube."
+                channel_id = items[0]["snippet"]["channelId"]
+
+            stats_resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/channels",
+                params={"part": "snippet,statistics", "id": channel_id, "key": api_key},
+            )
+            stats_resp.raise_for_status()
+            items = stats_resp.json().get("items", [])
+            if not items:
+                return "Canal não encontrado."
+
+            ch = items[0]
+            name = ch["snippet"]["title"]
+            desc = ch["snippet"].get("description", "")[:200]
+            stats = ch["statistics"]
+            subs = int(stats.get("subscriberCount", 0))
+            views = int(stats.get("viewCount", 0))
+            videos = int(stats.get("videoCount", 0))
+
+            return (
+                f"📺 **{name}**\n\n"
+                f"👥 Inscritos: **{subs:,}**\n"
+                f"👁️ Views totais: **{views:,}**\n"
+                f"🎬 Vídeos publicados: **{videos}**\n\n"
+                f"_{desc}_"
+            )
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "Quota da YouTube API excedida ou chave inválida."
+        return f"Erro YouTube API (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao consultar YouTube: {exc}"
+
+
+async def get_youtube_recent_videos(channel_alias: str, api_key: str, channels_config: list, max_results: int = 5) -> str:
+    if not api_key:
+        return "YouTube API não configurada. Adicione YOUTUBE_API_KEY no Railway."
+
+    channel_id = None
+    for ch in channels_config:
+        if ch.get("alias") == channel_alias:
+            channel_id = ch.get("channel_id")
+            break
+
+    if not channel_id:
+        aliases = [c.get("alias") for c in channels_config]
+        return f"Canal '{channel_alias}' não encontrado. Aliases disponíveis: {aliases}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            if channel_id.startswith("@"):
+                search_resp = await client.get(
+                    "https://www.googleapis.com/youtube/v3/search",
+                    params={"part": "snippet", "q": channel_id, "type": "channel", "key": api_key, "maxResults": 1},
+                )
+                search_resp.raise_for_status()
+                items = search_resp.json().get("items", [])
+                if not items:
+                    return f"Canal '{channel_id}' não encontrado."
+                channel_id = items[0]["snippet"]["channelId"]
+
+            videos_resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/search",
+                params={
+                    "part": "snippet", "channelId": channel_id, "type": "video",
+                    "order": "date", "maxResults": max_results, "key": api_key,
+                },
+            )
+            videos_resp.raise_for_status()
+            items = videos_resp.json().get("items", [])
+            if not items:
+                return "Nenhum vídeo encontrado."
+
+            video_ids = [i["id"]["videoId"] for i in items]
+            stats_resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/videos",
+                params={"part": "statistics,contentDetails", "id": ",".join(video_ids), "key": api_key},
+            )
+            stats_resp.raise_for_status()
+            stats_map = {v["id"]: v for v in stats_resp.json().get("items", [])}
+
+            lines = [f"🎬 **Últimos {len(items)} vídeos**\n"]
+            for item in items:
+                vid_id = item["id"]["videoId"]
+                title = item["snippet"]["title"]
+                published = item["snippet"]["publishedAt"][:10]
+                url = f"https://youtube.com/watch?v={vid_id}"
+                vstats = stats_map.get(vid_id, {}).get("statistics", {})
+                views = int(vstats.get("viewCount", 0))
+                likes = int(vstats.get("likeCount", 0))
+                lines.append(f"▶️ **{title}**")
+                lines.append(f"   👁️ {views:,} views · 👍 {likes:,} likes · 📅 {published}")
+                lines.append(f"   {url}\n")
+
+            return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "Quota da YouTube API excedida ou chave inválida."
+        return f"Erro YouTube API (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao buscar vídeos: {exc}"
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -723,6 +853,36 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["fact_id"],
             },
         },
+        {
+            "name": "get_youtube_channel_stats",
+            "description": (
+                "Consulta estatísticas de um canal do YouTube: inscritos, views totais e número de vídeos. "
+                "Use quando Ramon perguntar sobre o desempenho do canal, quantos inscritos tem, etc. "
+                "O alias padrão do canal de Ramon é 'ramon'."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_alias": {"type": "string", "description": "Alias do canal configurado. Ex: 'ramon'", "default": "ramon"},
+                },
+                "required": ["channel_alias"],
+            },
+        },
+        {
+            "name": "get_youtube_recent_videos",
+            "description": (
+                "Lista os vídeos mais recentes de um canal do YouTube com views, likes e links. "
+                "Use quando Ramon perguntar sobre os últimos vídeos, desempenho de vídeos recentes, etc."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_alias": {"type": "string", "description": "Alias do canal configurado. Ex: 'ramon'", "default": "ramon"},
+                    "max_results": {"type": "integer", "description": "Número de vídeos a retornar (padrão: 5, máximo: 10).", "default": 5},
+                },
+                "required": ["channel_alias"],
+            },
+        },
     ]
 
 
@@ -810,6 +970,19 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
         elif tool_name == "delete_memory":
             return await tool_delete_memory(
                 fact_id=int(tool_input.get("fact_id", 0)),
+            )
+        elif tool_name == "get_youtube_channel_stats":
+            return await get_youtube_channel_stats(
+                channel_alias=tool_input.get("channel_alias", "ramon"),
+                api_key=config.YOUTUBE_API_KEY,
+                channels_config=config.YOUTUBE_CHANNELS,
+            )
+        elif tool_name == "get_youtube_recent_videos":
+            return await get_youtube_recent_videos(
+                channel_alias=tool_input.get("channel_alias", "ramon"),
+                api_key=config.YOUTUBE_API_KEY,
+                channels_config=config.YOUTUBE_CHANNELS,
+                max_results=tool_input.get("max_results", 5),
             )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
