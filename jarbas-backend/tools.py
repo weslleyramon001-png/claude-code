@@ -231,6 +231,93 @@ async def write_file(path: str, content: str) -> str:
         return f"Erro ao salvar arquivo: {exc}"
 
 
+async def youtube_search(query: str, api_key: str, max_results: int = 5) -> str:
+    if not api_key:
+        return "YouTube indisponível — adicione YOUTUBE_API_KEY no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/search",
+                params={
+                    "part": "snippet",
+                    "q": query,
+                    "type": "video",
+                    "maxResults": max_results,
+                    "relevanceLanguage": "pt",
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "Chave da YouTube API inválida ou cota esgotada."
+        return f"Erro na YouTube API (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao buscar no YouTube: {exc}"
+
+    items = data.get("items", [])
+    if not items:
+        return f"Nenhum vídeo encontrado para '{query}'."
+
+    lines = [f"**Resultados do YouTube para '{query}':**\n"]
+    for i, item in enumerate(items, 1):
+        snippet = item.get("snippet", {})
+        video_id = item.get("id", {}).get("videoId", "")
+        title = snippet.get("title", "Sem título")
+        channel = snippet.get("channelTitle", "")
+        description = snippet.get("description", "")[:150].strip()
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        lines.append(f"{i}. **{title}**")
+        lines.append(f"   Canal: {channel}")
+        if description:
+            lines.append(f"   {description}...")
+        lines.append(f"   {url}\n")
+    return "\n".join(lines).strip()
+
+
+async def youtube_channel_stats(channel_id: str, api_key: str) -> str:
+    if not api_key:
+        return "YouTube indisponível — adicione YOUTUBE_API_KEY no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/channels",
+                params={
+                    "part": "snippet,statistics",
+                    "id": channel_id,
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as exc:
+        return f"Erro ao buscar canal: {exc}"
+
+    items = data.get("items", [])
+    if not items:
+        return f"Canal '{channel_id}' não encontrado."
+
+    ch = items[0]
+    snippet = ch.get("snippet", {})
+    stats = ch.get("statistics", {})
+    name = snippet.get("title", "?")
+    description = snippet.get("description", "")[:200].strip()
+    subscribers = int(stats.get("subscriberCount", 0))
+    views = int(stats.get("viewCount", 0))
+    videos = int(stats.get("videoCount", 0))
+
+    lines = [
+        f"**Canal: {name}**",
+        f"👥 Inscritos: {subscribers:,}".replace(",", "."),
+        f"▶️ Visualizações totais: {views:,}".replace(",", "."),
+        f"🎬 Vídeos publicados: {videos}",
+    ]
+    if description:
+        lines.append(f"\n📝 {description}")
+    return "\n".join(lines)
+
+
 async def get_weather(city: str) -> str:
     WMO_CODES = {
         0: "Céu limpo ☀️",
@@ -454,6 +541,35 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
+            "name": "youtube_search",
+            "description": (
+                "Busca vídeos no YouTube por palavra-chave. "
+                "Use quando Ramon pedir para encontrar vídeos, tutoriais, ou conteúdo no YouTube."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Termo de busca. Ex: 'como montar PC gamer', 'planilhas Excel'"},
+                    "max_results": {"type": "integer", "description": "Número de resultados (1-10). Padrão: 5.", "default": 5},
+                },
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "youtube_channel_stats",
+            "description": (
+                "Retorna estatísticas de um canal do YouTube: inscritos, visualizações e vídeos publicados. "
+                "Use quando Ramon quiser ver dados do próprio canal ou de qualquer outro canal."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_id": {"type": "string", "description": "ID do canal YouTube (formato UCxxxxxxxx)."},
+                },
+                "required": ["channel_id"],
+            },
+        },
+        {
             "name": "add_movement",
             "description": (
                 "Registra uma movimentação financeira (entrada ou saída). "
@@ -604,6 +720,17 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "get_weather":
             return await get_weather(tool_input.get("city", ""))
+        elif tool_name == "youtube_search":
+            return await youtube_search(
+                query=tool_input.get("query", ""),
+                api_key=config.YOUTUBE_API_KEY,
+                max_results=tool_input.get("max_results", 5),
+            )
+        elif tool_name == "youtube_channel_stats":
+            return await youtube_channel_stats(
+                channel_id=tool_input.get("channel_id", ""),
+                api_key=config.YOUTUBE_API_KEY,
+            )
         elif tool_name == "add_movement":
             return await tool_add_movement(
                 movement_type=tool_input.get("movement_type", "entrada"),
@@ -618,13 +745,6 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "get_balance":
             return await tool_get_balance()
-        elif tool_name == "take_screenshot":
-            return await take_screenshot(
-                url=tool_input.get("url", ""),
-                full_page=tool_input.get("full_page", False),
-            )
-        elif tool_name == "browse_and_read":
-            return await browse_and_read(url=tool_input.get("url", ""))
         elif tool_name == "system_info":
             return await system_info()
         elif tool_name == "run_command":
@@ -641,6 +761,13 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
                 path=tool_input.get("path", ""),
                 content=tool_input.get("content", ""),
             )
+        elif tool_name == "take_screenshot":
+            return await take_screenshot(
+                url=tool_input.get("url", ""),
+                full_page=tool_input.get("full_page", False),
+            )
+        elif tool_name == "browse_and_read":
+            return await browse_and_read(url=tool_input.get("url", ""))
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
     except Exception as exc:

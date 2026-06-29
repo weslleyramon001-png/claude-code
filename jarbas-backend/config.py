@@ -24,6 +24,11 @@ class Config:
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
+    # ── YouTube Data API ───────────────────────────────────────────────────
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    # JSON array: [{"alias": "meu_canal", "channel_id": "UCxxxxxxx"}]
+    YOUTUBE_CHANNELS: str = os.getenv("YOUTUBE_CHANNELS", "[]")
+
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
 
@@ -66,6 +71,7 @@ class Config:
             "claude": bool(self.ANTHROPIC_API_KEY),
             "voice": bool(self.ELEVENLABS_API_KEY),
             "web_search": bool(self.TAVILY_API_KEY),
+            "youtube": bool(self.YOUTUBE_API_KEY),
             "version": self.APP_VERSION,
         }
 
