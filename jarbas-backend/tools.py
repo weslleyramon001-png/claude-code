@@ -431,6 +431,39 @@ async def tool_delete_memory(fact_id: int) -> str:
 
 # ── YouTube ────────────────────────────────────────────────────────────────
 
+async def _resolve_channel_id(client: httpx.AsyncClient, channel_id: str, api_key: str) -> str:
+    """Resolve @handle para channel ID usando forHandle (1 quota unit, não 100)."""
+    if not channel_id.startswith("@"):
+        return channel_id
+    handle = channel_id.lstrip("@")
+    resp = await client.get(
+        "https://www.googleapis.com/youtube/v3/channels",
+        params={"part": "id", "forHandle": handle, "key": api_key},
+    )
+    resp.raise_for_status()
+    items = resp.json().get("items", [])
+    if not items:
+        raise ValueError(f"Canal '{channel_id}' não encontrado no YouTube.")
+    return items[0]["id"]
+
+
+def _youtube_error(exc: httpx.HTTPStatusError) -> str:
+    try:
+        reason = exc.response.json()["error"]["errors"][0].get("reason", "")
+        message = exc.response.json()["error"].get("message", "")
+    except Exception:
+        reason, message = "", ""
+    if exc.response.status_code == 403:
+        if "quotaExceeded" in reason:
+            return "Quota diária da YouTube API esgotada (10.000 unidades/dia). Tente amanhã."
+        if "keyInvalid" in reason:
+            return "Chave da YouTube API inválida. Verifique YOUTUBE_API_KEY no Railway."
+        if "accessNotConfigured" in reason:
+            return "YouTube Data API v3 não está habilitada para esta chave. Ative no Google Cloud Console."
+        return f"YouTube API bloqueou a requisição (403). Verifique restrições de IP/chave no Google Cloud Console. Detalhe: {message or reason}"
+    return f"Erro YouTube API (HTTP {exc.response.status_code}): {message}"
+
+
 async def get_youtube_channel_stats(channel_alias: str, api_key: str, channels_config: list) -> str:
     if not api_key:
         return "YouTube API não configurada. Adicione YOUTUBE_API_KEY no Railway."
@@ -447,16 +480,7 @@ async def get_youtube_channel_stats(channel_alias: str, api_key: str, channels_c
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            if channel_id.startswith("@"):
-                search_resp = await client.get(
-                    "https://www.googleapis.com/youtube/v3/search",
-                    params={"part": "snippet", "q": channel_id, "type": "channel", "key": api_key, "maxResults": 1},
-                )
-                search_resp.raise_for_status()
-                items = search_resp.json().get("items", [])
-                if not items:
-                    return f"Canal '{channel_id}' não encontrado no YouTube."
-                channel_id = items[0]["snippet"]["channelId"]
+            channel_id = await _resolve_channel_id(client, channel_id, api_key)
 
             stats_resp = await client.get(
                 "https://www.googleapis.com/youtube/v3/channels",
@@ -482,10 +506,10 @@ async def get_youtube_channel_stats(channel_alias: str, api_key: str, channels_c
                 f"🎬 Vídeos publicados: **{videos}**\n\n"
                 f"_{desc}_"
             )
+    except ValueError as exc:
+        return str(exc)
     except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 403:
-            return "Quota da YouTube API excedida ou chave inválida."
-        return f"Erro YouTube API (HTTP {exc.response.status_code})."
+        return _youtube_error(exc)
     except Exception as exc:
         return f"Erro ao consultar YouTube: {exc}"
 
@@ -506,16 +530,7 @@ async def get_youtube_recent_videos(channel_alias: str, api_key: str, channels_c
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            if channel_id.startswith("@"):
-                search_resp = await client.get(
-                    "https://www.googleapis.com/youtube/v3/search",
-                    params={"part": "snippet", "q": channel_id, "type": "channel", "key": api_key, "maxResults": 1},
-                )
-                search_resp.raise_for_status()
-                items = search_resp.json().get("items", [])
-                if not items:
-                    return f"Canal '{channel_id}' não encontrado."
-                channel_id = items[0]["snippet"]["channelId"]
+            channel_id = await _resolve_channel_id(client, channel_id, api_key)
 
             videos_resp = await client.get(
                 "https://www.googleapis.com/youtube/v3/search",
@@ -527,7 +542,7 @@ async def get_youtube_recent_videos(channel_alias: str, api_key: str, channels_c
             videos_resp.raise_for_status()
             items = videos_resp.json().get("items", [])
             if not items:
-                return "Nenhum vídeo encontrado."
+                return "Nenhum vídeo encontrado no canal."
 
             video_ids = [i["id"]["videoId"] for i in items]
             stats_resp = await client.get(
@@ -551,10 +566,10 @@ async def get_youtube_recent_videos(channel_alias: str, api_key: str, channels_c
                 lines.append(f"   {url}\n")
 
             return "\n".join(lines)
+    except ValueError as exc:
+        return str(exc)
     except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 403:
-            return "Quota da YouTube API excedida ou chave inválida."
-        return f"Erro YouTube API (HTTP {exc.response.status_code})."
+        return _youtube_error(exc)
     except Exception as exc:
         return f"Erro ao buscar vídeos: {exc}"
 
