@@ -574,6 +574,204 @@ async def get_youtube_recent_videos(channel_alias: str, api_key: str, channels_c
         return f"Erro ao buscar vídeos: {exc}"
 
 
+# ── Meta (Facebook + Instagram) ────────────────────────────────────────────
+
+_GRAPH_BASE = "https://graph.facebook.com/v19.0"
+
+
+def _meta_error(exc: httpx.HTTPStatusError) -> str:
+    try:
+        error = exc.response.json().get("error", {})
+        message = error.get("message", "")
+        code = error.get("code", 0)
+    except Exception:
+        message, code = "", 0
+    if exc.response.status_code == 401 or code == 190:
+        return "Token Meta expirado ou inválido. Gere um novo Page Access Token no Graph API Explorer."
+    if code == 200:
+        return "Permissão negada pelo Meta. Verifique as permissões do app no Graph API Explorer."
+    if code in (4, 32):
+        return "Limite de chamadas da API Meta atingido. Aguarde alguns minutos."
+    return f"Erro Meta API (HTTP {exc.response.status_code}, code {code}): {message}"
+
+
+async def get_facebook_page_stats(page_id: str, page_access_token: str) -> str:
+    if not page_access_token:
+        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
+    if not page_id:
+        return "META_PAGE_ID não configurado no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"{_GRAPH_BASE}/{page_id}",
+                params={
+                    "fields": "name,fan_count,followers_count,about,website",
+                    "access_token": page_access_token,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        name = data.get("name", "?")
+        fans = data.get("fan_count", 0)
+        followers = data.get("followers_count", 0)
+        about = data.get("about", "")
+        website = data.get("website", "")
+        lines = [
+            f"📘 **{name}** (Facebook Page)",
+            f"👥 Curtidas: **{fans:,}**",
+            f"👥 Seguidores: **{followers:,}**",
+        ]
+        if about:
+            lines.append(f"📝 {about}")
+        if website:
+            lines.append(f"🔗 {website}")
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        return _meta_error(exc)
+    except Exception as exc:
+        return f"Erro ao consultar página do Facebook: {exc}"
+
+
+async def get_instagram_profile(ig_user_id: str, page_access_token: str) -> str:
+    if not page_access_token:
+        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
+    if not ig_user_id:
+        return "META_IG_USER_ID não configurado no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"{_GRAPH_BASE}/{ig_user_id}",
+                params={
+                    "fields": "name,username,biography,followers_count,follows_count,media_count,website",
+                    "access_token": page_access_token,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        username = data.get("username", "?")
+        name = data.get("name", "?")
+        bio = data.get("biography", "")
+        followers = data.get("followers_count", 0)
+        following = data.get("follows_count", 0)
+        posts = data.get("media_count", 0)
+        website = data.get("website", "")
+        lines = [
+            f"📸 **@{username}** ({name})",
+            f"👥 Seguidores: **{followers:,}**",
+            f"➡️ Seguindo: **{following:,}**",
+            f"🖼️ Publicações: **{posts}**",
+        ]
+        if bio:
+            lines.append(f"📝 {bio}")
+        if website:
+            lines.append(f"🔗 {website}")
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        return _meta_error(exc)
+    except Exception as exc:
+        return f"Erro ao consultar Instagram: {exc}"
+
+
+async def get_instagram_recent_posts(ig_user_id: str, page_access_token: str, limit: int = 5) -> str:
+    if not page_access_token:
+        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
+    if not ig_user_id:
+        return "META_IG_USER_ID não configurado no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"{_GRAPH_BASE}/{ig_user_id}/media",
+                params={
+                    "fields": "id,caption,media_type,timestamp,like_count,comments_count,permalink",
+                    "limit": limit,
+                    "access_token": page_access_token,
+                },
+            )
+            resp.raise_for_status()
+            items = resp.json().get("data", [])
+        if not items:
+            return "Nenhuma publicação encontrada no Instagram."
+        lines = [f"📸 **Últimas {len(items)} publicações no Instagram**\n"]
+        type_icon = {"IMAGE": "🖼️", "VIDEO": "🎬", "CAROUSEL_ALBUM": "📂"}
+        for post in items:
+            caption = (post.get("caption") or "")[:120].replace("\n", " ")
+            if len(post.get("caption") or "") > 120:
+                caption += "..."
+            icon = type_icon.get(post.get("media_type", ""), "📄")
+            ts = post.get("timestamp", "")[:10]
+            likes = post.get("like_count", 0)
+            comments = post.get("comments_count", 0)
+            permalink = post.get("permalink", "")
+            lines.append(f"{icon} _{ts}_ · 👍 **{likes}** · 💬 **{comments}**")
+            if caption:
+                lines.append(f"   \"{caption}\"")
+            if permalink:
+                lines.append(f"   {permalink}")
+            lines.append("")
+        return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        return _meta_error(exc)
+    except Exception as exc:
+        return f"Erro ao buscar posts do Instagram: {exc}"
+
+
+async def post_to_facebook(message: str, page_id: str, page_access_token: str) -> str:
+    if not page_access_token:
+        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
+    if not page_id:
+        return "META_PAGE_ID não configurado no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"{_GRAPH_BASE}/{page_id}/feed",
+                data={"message": message, "access_token": page_access_token},
+            )
+            resp.raise_for_status()
+            post_id = resp.json().get("id", "?")
+        preview = message[:200] + ("..." if len(message) > 200 else "")
+        return f"✅ **Publicado no Facebook!**\n\nID: `{post_id}`\n\n> {preview}"
+    except httpx.HTTPStatusError as exc:
+        return _meta_error(exc)
+    except Exception as exc:
+        return f"Erro ao publicar no Facebook: {exc}"
+
+
+async def post_to_instagram(ig_user_id: str, page_access_token: str, image_url: str, caption: str = "") -> str:
+    if not page_access_token:
+        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
+    if not ig_user_id:
+        return "META_IG_USER_ID não configurado no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            container_resp = await client.post(
+                f"{_GRAPH_BASE}/{ig_user_id}/media",
+                data={"image_url": image_url, "caption": caption, "access_token": page_access_token},
+            )
+            container_resp.raise_for_status()
+            creation_id = container_resp.json().get("id")
+            if not creation_id:
+                return "Erro: container de mídia não foi criado. Verifique se a URL da imagem é pública."
+
+            publish_resp = await client.post(
+                f"{_GRAPH_BASE}/{ig_user_id}/media_publish",
+                data={"creation_id": creation_id, "access_token": page_access_token},
+            )
+            publish_resp.raise_for_status()
+            media_id = publish_resp.json().get("id", "?")
+
+        preview_caption = caption[:200] + ("..." if len(caption) > 200 else "") if caption else "(sem legenda)"
+        return (
+            f"✅ **Publicado no Instagram!**\n\n"
+            f"ID: `{media_id}`\n"
+            f"📸 Imagem: {image_url[:80]}\n"
+            f"📝 {preview_caption}"
+        )
+    except httpx.HTTPStatusError as exc:
+        return _meta_error(exc)
+    except Exception as exc:
+        return f"Erro ao publicar no Instagram: {exc}"
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -898,6 +1096,66 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["channel_alias"],
             },
         },
+        {
+            "name": "get_facebook_page_stats",
+            "description": (
+                "Consulta estatísticas da página do Facebook de Ramon: curtidas, seguidores, descrição. "
+                "Use quando Ramon perguntar sobre o desempenho da página, quantos seguidores tem no Facebook, etc."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "get_instagram_profile",
+            "description": (
+                "Consulta o perfil do Instagram de Ramon: seguidores, seguindo, número de posts, bio. "
+                "Use quando Ramon perguntar sobre o Instagram dele, quantos seguidores tem, etc."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "get_instagram_recent_posts",
+            "description": (
+                "Lista as publicações recentes do Instagram de Ramon com curtidas, comentários e links. "
+                "Use quando Ramon perguntar sobre os últimos posts, engajamento, métricas de publicações."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Número de posts a retornar (padrão: 5, máximo: 20).", "default": 5},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "post_to_facebook",
+            "description": (
+                "Publica uma mensagem de texto na página do Facebook de Ramon. "
+                "Use quando Ramon pedir para postar algo no Facebook ou publicar na página."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string", "description": "Texto da publicação."},
+                },
+                "required": ["message"],
+            },
+        },
+        {
+            "name": "post_to_instagram",
+            "description": (
+                "Publica uma foto com legenda no Instagram de Ramon. "
+                "A imagem deve ser uma URL pública acessível (JPEG/PNG). "
+                "Use quando Ramon pedir para postar no Instagram com uma imagem e legenda."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "image_url": {"type": "string", "description": "URL pública da imagem (JPEG ou PNG). Deve ser acessível publicamente."},
+                    "caption": {"type": "string", "description": "Legenda da publicação com hashtags. Opcional.", "default": ""},
+                },
+                "required": ["image_url"],
+            },
+        },
     ]
 
 
@@ -998,6 +1256,35 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
                 api_key=config.YOUTUBE_API_KEY,
                 channels_config=config.YOUTUBE_CHANNELS,
                 max_results=tool_input.get("max_results", 5),
+            )
+        elif tool_name == "get_facebook_page_stats":
+            return await get_facebook_page_stats(
+                page_id=config.META_PAGE_ID,
+                page_access_token=config.META_PAGE_ACCESS_TOKEN,
+            )
+        elif tool_name == "get_instagram_profile":
+            return await get_instagram_profile(
+                ig_user_id=config.META_IG_USER_ID,
+                page_access_token=config.META_PAGE_ACCESS_TOKEN,
+            )
+        elif tool_name == "get_instagram_recent_posts":
+            return await get_instagram_recent_posts(
+                ig_user_id=config.META_IG_USER_ID,
+                page_access_token=config.META_PAGE_ACCESS_TOKEN,
+                limit=tool_input.get("limit", 5),
+            )
+        elif tool_name == "post_to_facebook":
+            return await post_to_facebook(
+                message=tool_input.get("message", ""),
+                page_id=config.META_PAGE_ID,
+                page_access_token=config.META_PAGE_ACCESS_TOKEN,
+            )
+        elif tool_name == "post_to_instagram":
+            return await post_to_instagram(
+                ig_user_id=config.META_IG_USER_ID,
+                page_access_token=config.META_PAGE_ACCESS_TOKEN,
+                image_url=tool_input.get("image_url", ""),
+                caption=tool_input.get("caption", ""),
             )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."

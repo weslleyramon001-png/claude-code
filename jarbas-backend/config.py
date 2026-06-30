@@ -29,6 +29,16 @@ class Config:
     # JSON list: [{"alias": "ramon", "channel_id": "@weslleyramon6512"}]
     YOUTUBE_CHANNELS: list = __import__("json").loads(os.getenv("YOUTUBE_CHANNELS", "[]"))
 
+    # ── Meta (Facebook + Instagram) ────────────────────────────────────────
+    META_APP_ID: str = os.getenv("META_APP_ID", "2270042597068200")
+    META_APP_SECRET: str = os.getenv("META_APP_SECRET", "")
+    # Page Access Token — Railway usa FACEBOOK_PAGE_TOKEN, META_PAGE_ACCESS_TOKEN como fallback
+    META_PAGE_ACCESS_TOKEN: str = os.getenv("FACEBOOK_PAGE_TOKEN", "") or os.getenv("META_PAGE_ACCESS_TOKEN", "")
+    # Page ID — Railway usa FACEBOOK_PAGE_ID, META_PAGE_ID como fallback
+    META_PAGE_ID: str = os.getenv("FACEBOOK_PAGE_ID", "") or os.getenv("META_PAGE_ID", "")
+    # Instagram Business/Creator Account ID (diferente do @username)
+    META_IG_USER_ID: str = os.getenv("META_IG_USER_ID", "") or os.getenv("INSTAGRAM_USER_ID", "")
+
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
     # Token de acesso para proteger a API. Deixe vazio para acesso aberto (dev local).
