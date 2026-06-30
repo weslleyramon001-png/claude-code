@@ -28,7 +28,7 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 | Railway trial expires | **18/07/2026** — upgrade to paid (~R$25/mês) before this date |
 | Tailscale (Dell) | `100.82.120.121` |
 
-### Active Features (as of 26/06/2026)
+### Active Features (as of 30/06/2026)
 
 | Feature | Status |
 |---|---|
@@ -39,6 +39,9 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 | Web search (Tavily) | ✅ Online |
 | Financial module (movements + balance) | ✅ Online |
 | Reminders (CRUD) | ✅ Online |
+| YouTube stats + recent videos | ✅ Online (requires `YOUTUBE_API_KEY`) |
+| Facebook Page stats + publish | ✅ Online (requires Meta tokens) |
+| Instagram profile + posts + publish | ✅ Online (requires Meta tokens) |
 | Bearer Token auth (`ACCESS_TOKEN`) | ✅ Configured on Railway |
 | Push notifications | ✅ Ready |
 | PWA (installable on mobile) | ✅ Ready |
@@ -88,6 +91,13 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | `ELEVENLABS_API_KEY` | No | Enables `/voice` TTS endpoint |
 | `ELEVENLABS_VOICE_ID` | No | Default: `onwK4e9ZLuTAKqWW03F9` (Daniel, British JARVIS-style) |
 | `TAVILY_API_KEY` | No | Enables `web_search` tool (1000 free searches/month) |
+| `YOUTUBE_API_KEY` | No | Enables YouTube tools (channel stats, recent videos) |
+| `YOUTUBE_CHANNELS` | No | JSON list mapping aliases to channel IDs: `[{"alias":"ramon","channel_id":"@weslleyramon6512"}]` |
+| `META_APP_ID` | No | Meta App ID (default: `2270042597068200`) |
+| `META_APP_SECRET` | No | Meta App Secret |
+| `FACEBOOK_PAGE_TOKEN` | No | Facebook Page Access Token (also read as `META_PAGE_ACCESS_TOKEN`) |
+| `FACEBOOK_PAGE_ID` | No | Facebook Page ID (also read as `META_PAGE_ID`) |
+| `META_IG_USER_ID` | No | Instagram Business Account ID (also read as `INSTAGRAM_USER_ID`) |
 | `ACCESS_TOKEN` | No | Bearer auth for all endpoints (open if unset) |
 | `ALLOWED_ORIGINS` | No | Comma-separated CORS origins; default `*` |
 | `DB_PATH` | No | SQLite path (default: `jarbas_memory.db`; use `/data/jarbas_memory.db` on Railway) |
@@ -127,6 +137,12 @@ WebSocket (`/ws/{session_id}`) uses streaming mode — tokens are pushed as `{"t
 **Financial module:**
 The `movements` table tracks income/expenses. Tools `add_movement`, `list_movements`, `get_balance` expose this to Claude. REST endpoints `/finance/balance` and `/finance/movements` also expose it directly.
 
+**YouTube integration:**
+Tools `get_youtube_channel_stats` and `get_youtube_recent_videos` use the YouTube Data API v3. Channels are configured via `YOUTUBE_CHANNELS` (JSON array of `{"alias": ..., "channel_id": ...}` objects). The channel ID can be either a bare ID or an `@handle`; `_resolve_channel_id()` in `tools.py` resolves handles using the cheaper `forHandle` parameter (1 quota unit instead of 100). Daily quota limit is 10,000 units.
+
+**Meta (Facebook + Instagram) integration:**
+Tools for reading and publishing to Facebook Pages and Instagram Business accounts use the Graph API v19.0 (`_GRAPH_BASE` in `tools.py`). Authentication relies on a long-lived Page Access Token stored in `FACEBOOK_PAGE_TOKEN` on Railway. On Railway the env var names use the `FACEBOOK_*` prefix; the `META_*` names are fallbacks. Instagram publishing is a two-step process: create a media container, then publish it via `/{ig_user_id}/media_publish`.
+
 ### Agent Tools Reference
 
 All tools are registered in `tools.py:format_tools_for_claude()` and dispatched in `process_tool_call()`.
@@ -155,6 +171,13 @@ All tools are registered in `tools.py:format_tools_for_claude()` and dispatched 
 | `list_files` | List directory contents |
 | `read_file` | Read file contents from server |
 | `write_file` | Create or overwrite a file on the server |
+| `get_youtube_channel_stats` | Subscribers, total views, and video count for a configured YouTube channel |
+| `get_youtube_recent_videos` | Last N videos with views, likes, and links; uses YouTube Data API v3 |
+| `get_facebook_page_stats` | Facebook Page likes, followers, and description via Graph API |
+| `get_instagram_profile` | Instagram Business profile: followers, following, post count, bio |
+| `get_instagram_recent_posts` | Recent Instagram posts with likes, comments, and permalink |
+| `post_to_facebook` | Publish a text post to the configured Facebook Page |
+| `post_to_instagram` | Publish an image (public URL) + caption to the Instagram Business account |
 
 **Adding a new tool:** add the async function to `tools.py`, register its schema in `format_tools_for_claude()`, and add a dispatch branch in `process_tool_call()`.
 
@@ -289,3 +312,20 @@ The `claude.yml` action uses Workload Identity Federation — configure `ANTHROP
 - **Memory system has two layers:** automatic regex extraction from messages (`auto_extract_and_save` in `memory.py`) + explicit tool calls (`save_memory`, `list_memories`, `delete_memory`). Both write to the same `user_facts` table and are injected into every system prompt.
 - The `weslley_profile.md` file in `jarbas-backend/` is context documentation for JARBAS's persona/tools but is **not loaded at runtime**; facts are stored in SQLite instead.
 - **JARBAS persona** is defined in `personality.py`. It addresses the user as "Ramon" or "chefe". It knows about Ramon's businesses: **Pony-Digital** (digital products, Instagram marketing, spreadsheet packs on Kiwify/Hotmart) and **Servlink** (internet service provider).
+- **YouTube quota:** the YouTube Data API v3 has a hard limit of 10,000 units/day. `search.list` costs 100 units; `channels.list` with `forHandle` costs 1 unit. Prefer `forHandle` over search when resolving channel handles.
+- **Meta token rotation:** Facebook Page Access Tokens expire. When `_meta_error()` detects code 190, the token must be refreshed in the Graph API Explorer and updated in Railway env vars.
+- **Railway env var naming:** Railway variables use `FACEBOOK_PAGE_TOKEN` and `FACEBOOK_PAGE_ID` as primary names; `config.py` reads these first and falls back to the `META_*` equivalents.
+
+---
+
+## `.claude/commands/` — Custom Slash Commands
+
+Project-level custom commands live in `.claude/commands/`:
+
+| Command file | Invocation | What it does |
+|---|---|---|
+| `commit-push-pr.md` | `/commit-push-pr` | Stages changes, commits, pushes branch, and opens a PR via `gh pr create` in one step |
+| `dedupe.md` | `/dedupe` | Finds and flags duplicate GitHub issues |
+| `triage-issue.md` | `/triage-issue` | Analyzes a GitHub issue and applies appropriate labels |
+
+These are registered as Claude Code project commands (not plugins) and are visible when running Claude Code inside this repo.
