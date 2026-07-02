@@ -25,7 +25,9 @@ import anthropic
 import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Security, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response, JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
@@ -75,6 +77,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Servir arquivos estáticos (produtos, páginas públicas)
+_static_dir = Path(__file__).parent / "static"
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 
 # ── Request / Response models ──────────────────────────────────────────────
@@ -291,6 +298,13 @@ async def run_agent(
 
 
 # ── REST Endpoints ─────────────────────────────────────────────────────────
+
+@app.get("/arsenal-ia", response_class=HTMLResponse, include_in_schema=False)
+async def arsenal_ia_page():
+    """Página do produto ARSENAL IA — pública, sem autenticação."""
+    html_path = _static_dir / "arsenal-ia.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
 
 @app.get("/health")
 async def health():
