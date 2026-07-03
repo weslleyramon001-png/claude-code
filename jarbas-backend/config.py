@@ -29,6 +29,10 @@ class Config:
     # JSON list: [{"alias": "ramon", "channel_id": "@weslleyramon6512"}]
     YOUTUBE_CHANNELS: list = __import__("json").loads(os.getenv("YOUTUBE_CHANNELS", "[]"))
 
+    # ── IXC Soft — Servlink Telecom
+    IXC_EMAIL: str = os.getenv("IXC_EMAIL", "ramon@servlink.com.br")
+    IXC_PASSWORD: str = os.getenv("IXC_PASSWORD", "")
+
     # ── Meta (Facebook + Instagram) ────────────────────────────────────────
     META_APP_ID: str = os.getenv("META_APP_ID", "2270042597068200")
     META_APP_SECRET: str = os.getenv("META_APP_SECRET", "")

@@ -772,6 +772,28 @@ async def post_to_instagram(ig_user_id: str, page_access_token: str, image_url: 
         return f"Erro ao publicar no Instagram: {exc}"
 
 
+# ── IXC Soft — Servlink Telecom ───────────────────────────────────────────
+
+async def tool_ixc_login(ixc_email: str, ixc_password: str, two_fa_code: str = "") -> str:
+    from ixc import ixc_login
+    return await ixc_login(ixc_email, ixc_password, two_fa_code)
+
+
+async def tool_ixc_get_onus_rede_neutra(ixc_email: str, ixc_password: str, limit: int = 100) -> str:
+    from ixc import ixc_get_onus_rede_neutra
+    return await ixc_get_onus_rede_neutra(ixc_email, ixc_password, limit)
+
+
+async def tool_ixc_get_onus_online_por_vlan(ixc_email: str, ixc_password: str, vlan: str = "") -> str:
+    from ixc import ixc_get_onus_online_por_vlan
+    return await ixc_get_onus_online_por_vlan(ixc_email, ixc_password, vlan)
+
+
+async def tool_ixc_screenshot(ixc_email: str, ixc_password: str) -> dict:
+    from ixc import ixc_screenshot
+    return await ixc_screenshot(ixc_email, ixc_password)
+
+
 # ── Claude tool definitions ────────────────────────────────────────────────
 
 def format_tools_for_claude() -> list[dict]:
@@ -1141,6 +1163,73 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
+            "name": "ixc_login",
+            "description": (
+                "Faz login no sistema IXC Soft da Servlink Telecom. "
+                "Chame sem two_fa_code para iniciar. Se o IXC pedir 2FA, um código chega no e-mail "
+                "ramon@servlink.com.br — então chame novamente passando o código. "
+                "Use quando Ramon pedir acesso ao IXC, ONUs, rede neutra, ou sistema da Servlink."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "two_fa_code": {
+                        "type": "string",
+                        "description": "Código de 2 fatores recebido por e-mail. Deixe vazio para iniciar o login.",
+                        "default": "",
+                    },
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "ixc_get_onus_rede_neutra",
+            "description": (
+                "Lista as ONUs da rede neutra no IXC Soft da Servlink. "
+                "Requer login prévio com ixc_login. "
+                "Use quando Ramon perguntar sobre ONUs, clientes de rede neutra, ou fibra da Servlink."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Máximo de registros a retornar (padrão: 100).",
+                        "default": 100,
+                    },
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "ixc_get_onus_online_por_vlan",
+            "description": (
+                "Lista ONUs online da rede neutra agrupadas por VLAN no IXC Soft. "
+                "Se vlan for fornecida, mostra apenas essa VLAN. "
+                "Use quando Ramon perguntar quantas ONUs estão online por VLAN, ou clientes ativos por VLAN da rede neutra."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "vlan": {
+                        "type": "string",
+                        "description": "ID ou número da VLAN para filtrar. Vazio = agrupa todas as VLANs.",
+                        "default": "",
+                    },
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "ixc_screenshot",
+            "description": (
+                "Tira um screenshot da tela atual do IXC Soft para diagnóstico. "
+                "Use quando quiser ver o estado atual da interface, verificar se login funcionou, "
+                "ou entender a estrutura de uma página no IXC."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
             "name": "post_to_instagram",
             "description": (
                 "Publica uma foto com legenda no Instagram de Ramon. "
@@ -1285,6 +1374,29 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
                 page_access_token=config.META_PAGE_ACCESS_TOKEN,
                 image_url=tool_input.get("image_url", ""),
                 caption=tool_input.get("caption", ""),
+            )
+        elif tool_name == "ixc_login":
+            return await tool_ixc_login(
+                ixc_email=config.IXC_EMAIL,
+                ixc_password=config.IXC_PASSWORD,
+                two_fa_code=tool_input.get("two_fa_code", ""),
+            )
+        elif tool_name == "ixc_get_onus_rede_neutra":
+            return await tool_ixc_get_onus_rede_neutra(
+                ixc_email=config.IXC_EMAIL,
+                ixc_password=config.IXC_PASSWORD,
+                limit=tool_input.get("limit", 100),
+            )
+        elif tool_name == "ixc_get_onus_online_por_vlan":
+            return await tool_ixc_get_onus_online_por_vlan(
+                ixc_email=config.IXC_EMAIL,
+                ixc_password=config.IXC_PASSWORD,
+                vlan=tool_input.get("vlan", ""),
+            )
+        elif tool_name == "ixc_screenshot":
+            return await tool_ixc_screenshot(
+                ixc_email=config.IXC_EMAIL,
+                ixc_password=config.IXC_PASSWORD,
             )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
