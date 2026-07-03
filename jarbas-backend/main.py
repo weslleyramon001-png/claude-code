@@ -306,6 +306,13 @@ async def arsenal_ia_page():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 
+@app.get("/arsenal-ia-vendas", response_class=HTMLResponse, include_in_schema=False)
+async def arsenal_ia_vendas_page():
+    """Página de vendas do ARSENAL IA — pública, sem autenticação."""
+    html_path = _static_dir / "arsenal-ia-vendas.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+
 @app.get("/health")
 async def health():
     """Quick health check — always returns 200 OK if the server is up."""
