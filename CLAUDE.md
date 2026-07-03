@@ -155,6 +155,12 @@ All tools are registered in `tools.py:format_tools_for_claude()` and dispatched 
 | `list_files` | List directory contents |
 | `read_file` | Read file contents from server |
 | `write_file` | Create or overwrite a file on the server |
+| `ixc_login` | Login no IXC Soft da Servlink via Playwright; suporta 2FA |
+| `ixc_get_onus_rede_neutra` | Lista ONUs da rede neutra no IXC |
+| `ixc_get_onus_online_por_vlan` | ONUs online agrupadas por VLAN no IXC |
+| `ixc_screenshot` | Screenshot diagnóstico da tela atual do IXC |
+
+**IXC Soft integration:** `ixc.py` manages a persistent Playwright session (module-level `_sess` dict). Login uses `IXC_EMAIL`/`IXC_PASSWORD` from config; 2FA code (arrives at `ramon@servlink.com.br`) must be provided by Ramon via `ixc_login(two_fa_code="...")`. Session cookies are saved to `/data/ixc_session.json` for persistence across restarts.
 
 **Adding a new tool:** add the async function to `tools.py`, register its schema in `format_tools_for_claude()`, and add a dispatch branch in `process_tool_call()`.
 
