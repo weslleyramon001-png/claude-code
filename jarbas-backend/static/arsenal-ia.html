@@ -633,17 +633,69 @@
  font-weight: 600;  
  }  
   
- @media print {  
- body { background: var(--dark); }  
- .cover, .toc-page, .intro-page, .prompts-page, .back-cover {  
- width: 210mm;  
- page-break-after: always;  
- }  
- }  
+ @media print {
+ body { background: var(--dark); }
+ .cover, .toc-page, .intro-page, .prompts-page, .back-cover {
+ width: 210mm;
+ page-break-after: always;
+ }
+ .sticky-buy-bar { display: none !important; }
+ }
+
+ .sticky-buy-bar {
+ position: fixed;
+ top: 0; left: 0; right: 0;
+ background: rgba(10,10,15,0.95);
+ backdrop-filter: blur(10px);
+ border-bottom: 1px solid rgba(201,168,76,0.2);
+ padding: 10px 20px;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 16px;
+ z-index: 1000;
+ flex-wrap: wrap;
+ }
+
+ .sticky-buy-brand {
+ font-size: 13px;
+ font-weight: 700;
+ color: var(--gold);
+ letter-spacing: 2px;
+ text-transform: uppercase;
+ white-space: nowrap;
+ }
+
+ .sticky-buy-info {
+ font-size: 12px;
+ color: var(--gray);
+ }
+
+ .sticky-buy-btn {
+ display: inline-block;
+ background: linear-gradient(135deg, #C9A84C, #E8C96A);
+ color: #0A0A0F;
+ font-size: 13px;
+ font-weight: 800;
+ padding: 10px 24px;
+ border-radius: 8px;
+ text-decoration: none;
+ white-space: nowrap;
+ letter-spacing: 0.3px;
+ }
 </style>  
 </head>  
-<body>  
-  
+<body>
+
+<!-- BARRA FIXA DE COMPRA -->
+<div class="sticky-buy-bar">
+ <div>
+ <div class="sticky-buy-brand">ARSENAL IA</div>
+ <div class="sticky-buy-info">70 prompts profissionais · wl.solucion</div>
+ </div>
+ <a href="https://pay.kiwify.com.br/UAUfzqU" target="_blank" class="sticky-buy-btn">⚡ Comprar Acesso — R$47</a>
+</div>
+
 <!-- ===== CAPA ===== -->  
 <div class="cover">  
  <div class="cover-grid"></div>  
@@ -672,10 +724,11 @@
  <div class="cover-stat-label">Plataformas</div>  
  </div>  
  </div>  
- <div class="cover-bottom">  
- <div class="cover-bottom-brand">wl.solucion</div>  
- <div class="cover-bottom-tagline">Funciona com ChatGPT · Claude · Gemini</div>  
- </div>  
+ <div class="cover-bottom">
+ <div class="cover-bottom-brand">wl.solucion</div>
+ <div class="cover-bottom-tagline">Funciona com ChatGPT · Claude · Gemini</div>
+ </div>
+ <a href="https://pay.kiwify.com.br/UAUfzqU" target="_blank" style="display:inline-block; margin-top:32px; background:linear-gradient(135deg,#C9A84C,#E8C96A); color:#0A0A0F; font-size:15px; font-weight:800; padding:16px 40px; border-radius:10px; text-decoration:none; letter-spacing:0.3px; box-shadow:0 8px 28px rgba(201,168,76,0.35); z-index:1; position:relative;">⚡ Quero o ARSENAL IA — R$47</a>
 </div>  
   
 <!-- ===== SUMÁRIO ===== -->  
@@ -1331,10 +1384,13 @@
  <div style="font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.7;">Ajudamos empreendedores e profissionais a dominar ferramentas de IA para vender mais, criar conteúdo de alto impacto e automatizar seu negócio.</div>  
  </div>  
   
- <div style="margin-top: 40px; font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 1px;">  
- © 2026 wl.solucion · Todos os direitos reservados · Versão 1.1  
- </div>  
- </div>  
+ <div style="margin-top: 36px;">
+ <a href="https://pay.kiwify.com.br/UAUfzqU" target="_blank" style="display:inline-block; background:linear-gradient(135deg,#C9A84C,#E8C96A); color:#0A0A0F; font-size:14px; font-weight:800; padding:14px 36px; border-radius:10px; text-decoration:none; letter-spacing:0.3px;">⚡ Comprar Acesso — R$47</a>
+ </div>
+ <div style="margin-top: 32px; font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 1px;">
+ © 2026 wl.solucion · Todos os direitos reservados · Versão 1.1
+ </div>
+ </div>
 </div>  
   
 </body>
