@@ -390,6 +390,61 @@ async def get_weather(city: str) -> str:
         return f"Erro ao buscar clima: {exc}"
 
 
+# ── Facebook / Instagram ──────────────────────────────────────────────────
+
+async def facebook_instagram_stats(token: str, page_id: str) -> str:
+    if not token:
+        return "Facebook/Instagram indisponível — adicione FACEBOOK_PAGE_TOKEN no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            fb_resp = await client.get(
+                f"https://graph.facebook.com/v19.0/{page_id}",
+                params={
+                    "fields": "name,fan_count,followers_count,instagram_business_account",
+                    "access_token": token,
+                },
+            )
+            fb_resp.raise_for_status()
+            fb_data = fb_resp.json()
+
+            lines = ["📊 **Suas redes sociais:**\n"]
+            fb_name = fb_data.get("name", "Página")
+            fb_fans = fb_data.get("fan_count", 0)
+            fb_followers = fb_data.get("followers_count", 0)
+            lines.append(f"**Facebook — {fb_name}**")
+            lines.append(f"👍 Curtidas: {fb_fans:,}".replace(",", "."))
+            lines.append(f"👥 Seguidores: {fb_followers:,}".replace(",", "."))
+
+            ig_account = fb_data.get("instagram_business_account", {})
+            if ig_account:
+                ig_id = ig_account.get("id")
+                ig_resp = await client.get(
+                    f"https://graph.facebook.com/v19.0/{ig_id}",
+                    params={
+                        "fields": "username,followers_count,media_count",
+                        "access_token": token,
+                    },
+                )
+                ig_resp.raise_for_status()
+                ig_data = ig_resp.json()
+                ig_username = ig_data.get("username", "")
+                ig_followers = ig_data.get("followers_count", 0)
+                ig_media = ig_data.get("media_count", 0)
+                lines.append(f"\n**Instagram — @{ig_username}**")
+                lines.append(f"👥 Seguidores: {ig_followers:,}".replace(",", "."))
+                lines.append(f"📸 Posts: {ig_media}")
+            else:
+                lines.append("\n_Instagram não vinculado à página._")
+
+            return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "Token do Facebook expirado ou inválido. Precisa renovar."
+        return f"Erro na API do Facebook (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao buscar dados do Facebook/Instagram: {exc}"
+
+
 # ── Financial Movements ────────────────────────────────────────────────────
 
 async def tool_add_movement(movement_type: str, amount: float, description: str, category: str = "geral") -> str:
@@ -614,6 +669,15 @@ def format_tools_for_claude() -> list[dict]:
             "input_schema": {"type": "object", "properties": {}, "required": []},
         },
         {
+            "name": "facebook_instagram_stats",
+            "description": (
+                "Consulta estatísticas da página do Facebook e do Instagram de Ramon em tempo real. "
+                "Retorna curtidas e seguidores do Facebook, e seguidores e posts do Instagram. "
+                "Use quando Ramon perguntar sobre seguidores, curtidas, stats das redes sociais, Instagram ou Facebook."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
             "name": "system_info",
             "description": "Retorna informações do servidor em tempo real: CPU, RAM, disco e tempo ligado. Use quando Ramon perguntar sobre o status do servidor ou recursos.",
             "input_schema": {"type": "object", "properties": {}, "required": []},
@@ -694,7 +758,47 @@ def format_tools_for_claude() -> list[dict]:
                 "required": ["url"],
             },
         },
+        {
+            "name": "trigger_n8n",
+            "description": (
+                "Aciona um fluxo de automação no n8n. Use para executar tarefas automáticas "
+                "como postar em redes sociais, enviar emails, buscar dados externos, "
+                "processar informações, ou qualquer outra automação configurada no n8n. "
+                "Especifique a ação desejada e os dados necessários."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "description": "Nome da ação a executar. Ex: 'postar_instagram', 'enviar_email', 'buscar_dados'."
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "Dados necessários para a automação. Ex: {'mensagem': 'Texto do post', 'destinatario': 'email@exemplo.com'}."
+                    },
+                },
+                "required": ["action"],
+            },
+        },
     ]
+
+
+async def trigger_n8n(action: str, data: dict = {}) -> str:
+    n8n_url = os.getenv("N8N_WEBHOOK_URL", "https://n8n-production-fea4.up.railway.app/webhook/818e253f-0228-474a-8b6d-eff3b5f0bcc8")
+    payload = {"action": action, "data": data}
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(n8n_url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+            return f"Automação '{action}' executada com sucesso. Resultado: {result}"
+    except httpx.TimeoutException:
+        return f"Automação '{action}' demorou demais para responder. Tente novamente."
+    except httpx.HTTPStatusError as exc:
+        return f"Erro na automação '{action}' (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao acionar automação '{action}': {exc}"
 
 
 # ── Tool dispatcher ──────────────────────────────────────────────────────
@@ -745,6 +849,11 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "get_balance":
             return await tool_get_balance()
+        elif tool_name == "facebook_instagram_stats":
+            return await facebook_instagram_stats(
+                token=config.FACEBOOK_PAGE_TOKEN,
+                page_id=config.FACEBOOK_PAGE_ID,
+            )
         elif tool_name == "system_info":
             return await system_info()
         elif tool_name == "run_command":
@@ -768,6 +877,11 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "browse_and_read":
             return await browse_and_read(url=tool_input.get("url", ""))
+        elif tool_name == "trigger_n8n":
+            return await trigger_n8n(
+                action=tool_input.get("action", ""),
+                data=tool_input.get("data", {}),
+            )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."
     except Exception as exc:
