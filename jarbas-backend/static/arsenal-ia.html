@@ -683,6 +683,89 @@
  white-space: nowrap;
  letter-spacing: 0.3px;
  }
+
+ /* ===== ACESSO RÁPIDO AOS PROMPTS ===== */
+ .access-section {
+ width: 210mm;
+ background: var(--dark2);
+ padding: 40px 50px;
+ border-bottom: 1px solid rgba(201,168,76,0.1);
+ }
+
+ .access-title {
+ font-size: 11px;
+ letter-spacing: 4px;
+ text-transform: uppercase;
+ color: var(--gold);
+ font-weight: 700;
+ margin-bottom: 20px;
+ }
+
+ .access-grid {
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 10px;
+ margin-bottom: 24px;
+ }
+
+ .access-btn {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ background: var(--dark3);
+ border: 1px solid rgba(201,168,76,0.2);
+ border-radius: 10px;
+ padding: 14px 16px;
+ text-decoration: none;
+ transition: border-color 0.2s;
+ cursor: pointer;
+ }
+
+ .access-btn:hover {
+ border-color: rgba(201,168,76,0.5);
+ }
+
+ .access-btn-icon {
+ font-size: 18px;
+ flex-shrink: 0;
+ }
+
+ .access-btn-text {
+ flex: 1;
+ }
+
+ .access-btn-label {
+ font-size: 12px;
+ font-weight: 700;
+ color: var(--white);
+ line-height: 1.2;
+ }
+
+ .access-btn-sub {
+ font-size: 10px;
+ color: var(--gray);
+ margin-top: 2px;
+ }
+
+ .access-main-btn {
+ display: block;
+ width: 100%;
+ background: linear-gradient(135deg, var(--gold), var(--gold-light));
+ color: var(--dark);
+ font-size: 15px;
+ font-weight: 800;
+ padding: 16px;
+ border-radius: 10px;
+ text-decoration: none;
+ text-align: center;
+ letter-spacing: 0.3px;
+ }
+
+ .toc-item a {
+ display: contents;
+ color: inherit;
+ text-decoration: none;
+ }
 </style>  
 </head>  
 <body>
@@ -731,8 +814,58 @@
  <a href="https://pay.kiwify.com.br/UAUfzqU" target="_blank" style="display:inline-block; margin-top:32px; background:linear-gradient(135deg,#C9A84C,#E8C96A); color:#0A0A0F; font-size:15px; font-weight:800; padding:16px 40px; border-radius:10px; text-decoration:none; letter-spacing:0.3px; box-shadow:0 8px 28px rgba(201,168,76,0.35); z-index:1; position:relative;">⚡ Quero o ARSENAL IA — R$47</a>
 </div>  
   
-<!-- ===== SUMÁRIO ===== -->  
-<div class="toc-page">  
+<!-- ===== ACESSO RÁPIDO AOS 70 PROMPTS ===== -->
+<div class="access-section" id="prompts">
+ <div class="access-title">⚡ Acesso Rápido — 70 Prompts</div>
+ <div class="access-grid">
+ <a href="#categoria-1" class="access-btn">
+ <div class="access-btn-icon">💰</div>
+ <div class="access-btn-text">
+ <div class="access-btn-label">Copy e Vendas</div>
+ <div class="access-btn-sub">15 prompts</div>
+ </div>
+ </a>
+ <a href="#categoria-2" class="access-btn">
+ <div class="access-btn-icon">📱</div>
+ <div class="access-btn-text">
+ <div class="access-btn-label">Conteúdo & Redes</div>
+ <div class="access-btn-sub">15 prompts</div>
+ </div>
+ </a>
+ <a href="#categoria-3" class="access-btn">
+ <div class="access-btn-icon">📧</div>
+ <div class="access-btn-text">
+ <div class="access-btn-label">E-mail Marketing</div>
+ <div class="access-btn-sub">10 prompts</div>
+ </div>
+ </a>
+ <a href="#categoria-4" class="access-btn">
+ <div class="access-btn-icon">💬</div>
+ <div class="access-btn-text">
+ <div class="access-btn-label">Atendimento</div>
+ <div class="access-btn-sub">10 prompts</div>
+ </div>
+ </a>
+ <a href="#categoria-5" class="access-btn">
+ <div class="access-btn-icon">🎯</div>
+ <div class="access-btn-text">
+ <div class="access-btn-label">Produtividade</div>
+ <div class="access-btn-sub">10 prompts</div>
+ </div>
+ </a>
+ <a href="#categoria-6" class="access-btn">
+ <div class="access-btn-icon">🚀</div>
+ <div class="access-btn-text">
+ <div class="access-btn-label">IA Avançado — Bônus</div>
+ <div class="access-btn-sub">10 prompts</div>
+ </div>
+ </a>
+ </div>
+ <a href="#categoria-1" class="access-main-btn">⚡ Acessar os 70 Prompts de IA</a>
+</div>
+
+<!-- ===== SUMÁRIO ===== -->
+<div class="toc-page">
  <div class="page-header">  
  <div class="page-header-num">☰</div>  
  <div class="page-header-title">Sumário</div>  
@@ -749,65 +882,77 @@
  <div class="toc-page-num">04</div>  
  </div>  
   
- <div class="toc-item">  
- <div class="toc-num">01</div>  
- <div class="toc-text">  
- <div class="toc-category">Copy e Vendas</div>  
- <div class="toc-prompts">15 prompts — páginas de vendas, WhatsApp, objeções, fechamento</div>  
- </div>  
- <div class="toc-dots"></div>  
- <div class="toc-page-num">05</div>  
- </div>  
-  
- <div class="toc-item">  
- <div class="toc-num">02</div>  
- <div class="toc-text">  
- <div class="toc-category">Conteúdo e Redes Sociais</div>  
- <div class="toc-prompts">15 prompts — calendário editorial, carrossel, reels, legendas</div>  
- </div>  
- <div class="toc-dots"></div>  
- <div class="toc-page-num">09</div>  
- </div>  
-  
- <div class="toc-item">  
- <div class="toc-num">03</div>  
- <div class="toc-text">  
- <div class="toc-category">E-mail Marketing</div>  
- <div class="toc-prompts">10 prompts — sequências, reativação, lançamento, nutrição</div>  
- </div>  
- <div class="toc-dots"></div>  
- <div class="toc-page-num">13</div>  
- </div>  
-  
- <div class="toc-item">  
- <div class="toc-num">04</div>  
- <div class="toc-text">  
- <div class="toc-category">Atendimento e Relacionamento</div>  
- <div class="toc-prompts">10 prompts — WhatsApp, follow-up, objeções, onboarding</div>  
- </div>  
- <div class="toc-dots"></div>  
- <div class="toc-page-num">16</div>  
- </div>  
-  
- <div class="toc-item">  
- <div class="toc-num">05</div>  
- <div class="toc-text">  
- <div class="toc-category">Produtividade e Gestão</div>  
- <div class="toc-prompts">10 prompts — plano de negócios, metas, delegação, análise</div>  
- </div>  
- <div class="toc-dots"></div>  
- <div class="toc-page-num">19</div>  
- </div>  
-  
- <div class="toc-item">  
- <div class="toc-num">06</div>  
- <div class="toc-text">  
- <div class="toc-category">IA Avançado — Bônus</div>  
- <div class="toc-prompts">10 prompts — personas, brainstorm, VSL, lançamento completo</div>  
- </div>  
- <div class="toc-dots"></div>  
- <div class="toc-page-num">22</div>  
- </div>  
+ <a href="#categoria-1" style="text-decoration:none; color:inherit; display:block;">
+ <div class="toc-item" style="cursor:pointer;">
+ <div class="toc-num">01</div>
+ <div class="toc-text">
+ <div class="toc-category">Copy e Vendas</div>
+ <div class="toc-prompts">15 prompts — páginas de vendas, WhatsApp, objeções, fechamento</div>
+ </div>
+ <div class="toc-dots"></div>
+ <div class="toc-page-num">→</div>
+ </div>
+ </a>
+
+ <a href="#categoria-2" style="text-decoration:none; color:inherit; display:block;">
+ <div class="toc-item" style="cursor:pointer;">
+ <div class="toc-num">02</div>
+ <div class="toc-text">
+ <div class="toc-category">Conteúdo e Redes Sociais</div>
+ <div class="toc-prompts">15 prompts — calendário editorial, carrossel, reels, legendas</div>
+ </div>
+ <div class="toc-dots"></div>
+ <div class="toc-page-num">→</div>
+ </div>
+ </a>
+
+ <a href="#categoria-3" style="text-decoration:none; color:inherit; display:block;">
+ <div class="toc-item" style="cursor:pointer;">
+ <div class="toc-num">03</div>
+ <div class="toc-text">
+ <div class="toc-category">E-mail Marketing</div>
+ <div class="toc-prompts">10 prompts — sequências, reativação, lançamento, nutrição</div>
+ </div>
+ <div class="toc-dots"></div>
+ <div class="toc-page-num">→</div>
+ </div>
+ </a>
+
+ <a href="#categoria-4" style="text-decoration:none; color:inherit; display:block;">
+ <div class="toc-item" style="cursor:pointer;">
+ <div class="toc-num">04</div>
+ <div class="toc-text">
+ <div class="toc-category">Atendimento e Relacionamento</div>
+ <div class="toc-prompts">10 prompts — WhatsApp, follow-up, objeções, onboarding</div>
+ </div>
+ <div class="toc-dots"></div>
+ <div class="toc-page-num">→</div>
+ </div>
+ </a>
+
+ <a href="#categoria-5" style="text-decoration:none; color:inherit; display:block;">
+ <div class="toc-item" style="cursor:pointer;">
+ <div class="toc-num">05</div>
+ <div class="toc-text">
+ <div class="toc-category">Produtividade e Gestão</div>
+ <div class="toc-prompts">10 prompts — plano de negócios, metas, delegação, análise</div>
+ </div>
+ <div class="toc-dots"></div>
+ <div class="toc-page-num">→</div>
+ </div>
+ </a>
+
+ <a href="#categoria-6" style="text-decoration:none; color:inherit; display:block;">
+ <div class="toc-item" style="cursor:pointer;">
+ <div class="toc-num">06</div>
+ <div class="toc-text">
+ <div class="toc-category">IA Avançado — Bônus</div>
+ <div class="toc-prompts">10 prompts — personas, brainstorm, VSL, lançamento completo</div>
+ </div>
+ <div class="toc-dots"></div>
+ <div class="toc-page-num">→</div>
+ </div>
+ </a>  
   
  <div style="margin-top: 50px;">  
  <div class="how-to" style="margin-bottom:0;">  
@@ -903,10 +1048,10 @@
  </div>  
 </div>  
   
-<!-- ===== CATEGORIA 1: COPY E VENDAS ===== -->  
-<div class="prompts-page" style="padding-top:0;">  
- <div class="category-cover">  
- <div class="category-number">Categoria 01 — 15 Prompts</div>  
+<!-- ===== CATEGORIA 1: COPY E VENDAS ===== -->
+<div class="prompts-page" id="categoria-1" style="padding-top:0;">
+ <div class="category-cover">
+ <div class="category-number">Categoria 01 — 15 Prompts</div>
  <div class="category-title">Copy e Vendas</div>  
  <div class="category-desc">Páginas de vendas, WhatsApp, objeções, fechamento e pitch de alto impacto.</div>  
  </div>  
@@ -1033,8 +1178,8 @@
  </div>  
 </div>  
   
-<!-- ===== CATEGORIA 2: CONTEÚDO ===== -->  
-<div class="prompts-page" style="padding-top:0;">  
+<!-- ===== CATEGORIA 2: CONTEÚDO ===== -->
+<div class="prompts-page" id="categoria-2" style="padding-top:0;">  
  <div class="category-cover">  
  <div class="category-number">Categoria 02 — 15 Prompts</div>  
  <div class="category-title">Conteúdo e Redes Sociais</div>  
@@ -1118,8 +1263,8 @@
  </div>  
 </div>  
   
-<!-- ===== CATEGORIA 3: E-MAIL ===== -->  
-<div class="prompts-page" style="padding-top:0;">  
+<!-- ===== CATEGORIA 3: E-MAIL ===== -->
+<div class="prompts-page" id="categoria-3" style="padding-top:0;">  
  <div class="category-cover">  
  <div class="category-number">Categoria 03 — 10 Prompts</div>  
  <div class="category-title">E-mail Marketing</div>  
@@ -1178,8 +1323,8 @@
  </div>  
 </div>  
   
-<!-- ===== CATEGORIA 4: ATENDIMENTO ===== -->  
-<div class="prompts-page" style="padding-top:0;">  
+<!-- ===== CATEGORIA 4: ATENDIMENTO ===== -->
+<div class="prompts-page" id="categoria-4" style="padding-top:0;">  
  <div class="category-cover">  
  <div class="category-number">Categoria 04 — 10 Prompts</div>  
  <div class="category-title">Atendimento e Relacionamento</div>  
@@ -1238,8 +1383,8 @@
  </div>  
 </div>  
   
-<!-- ===== CATEGORIA 5: PRODUTIVIDADE ===== -->  
-<div class="prompts-page" style="padding-top:0;">  
+<!-- ===== CATEGORIA 5: PRODUTIVIDADE ===== -->
+<div class="prompts-page" id="categoria-5" style="padding-top:0;">  
  <div class="category-cover">  
  <div class="category-number">Categoria 05 — 10 Prompts</div>  
  <div class="category-title">Produtividade e Gestão</div>  
@@ -1298,8 +1443,8 @@
  </div>  
 </div>  
   
-<!-- ===== CATEGORIA 6: IA AVANÇADO ===== -->  
-<div class="prompts-page" style="padding-top:0;">  
+<!-- ===== CATEGORIA 6: IA AVANÇADO ===== -->
+<div class="prompts-page" id="categoria-6" style="padding-top:0;">  
  <div class="category-cover" style="background: linear-gradient(135deg, #1a0a2e 0%, #2d1040 100%); border-bottom-color: #9b59b6;">  
  <div class="category-number" style="color:#b39ddb;">Categoria 06 — 10 Prompts Bônus</div>  
  <div class="category-title">IA Avançado</div>  
