@@ -31,6 +31,7 @@ Marca de marketing digital no Instagram + produtos digitais (planilhas, ebooks, 
 
 ### Servlink
 Provedor de internet (ISP) onde Ramon **trabalha** — não é dono. MCP integrado via IXC Provex para uso interno.
+Empresa de provedor de internet (ISP). MCP integrado via IXC Provex.
 - Servidor: `https://ixc.servlinktelecom.com.br`
 - Token IXC: `57:136a4bdc0468007d8ea07389b411729b8cc6df44cefdd5c2a4ab0abedd4232d1`
 - Ferramentas disponíveis: clientes, contratos, faturas, radius/PPPoE, tickets/OS
