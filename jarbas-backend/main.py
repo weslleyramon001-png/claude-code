@@ -320,6 +320,13 @@ async def ebook_primeiros_passos_page():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 
+@app.get("/clube-wl", response_class=HTMLResponse, include_in_schema=False)
+async def clube_wl_page():
+    """Clube WL-Solucion — página de vendas da comunidade VIP."""
+    html_path = _static_dir / "clube-wl.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+
 @app.get("/health")
 async def health():
     """Quick health check — always returns 200 OK if the server is up."""
