@@ -83,6 +83,31 @@ _static_dir = Path(__file__).parent / "static"
 if _static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
+# Servir interface do JARBAS na raiz
+_ui_dir = Path(__file__).parent / "static" / "ui"
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def serve_ui():
+    """Serve a interface principal do JARBAS."""
+    index = _ui_dir / "index.html"
+    if index.exists():
+        return HTMLResponse(content=index.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h2>JARBAS online</h2>")
+
+
+@app.get("/manifest.json", include_in_schema=False)
+async def serve_manifest():
+    f = _ui_dir / "manifest.json"
+    return JSONResponse(content=f.read_text(encoding="utf-8") if f.exists() else {})
+
+
+@app.get("/sw.js", include_in_schema=False)
+async def serve_sw():
+    f = _ui_dir / "sw.js"
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(content=f.read_text(encoding="utf-8") if f.exists() else "")
+
 
 # ── Request / Response models ──────────────────────────────────────────────
 
