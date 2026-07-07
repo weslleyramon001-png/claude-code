@@ -40,6 +40,7 @@ class Config:
 
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
+    ACCESS_TOKEN: str = os.getenv("ACCESS_TOKEN", "")
 
     # ── CORS ───────────────────────────────────────────────────────────────
     # Comma-separated list of allowed origins, e.g. "https://myapp.com,https://jarbas.up.railway.app"
