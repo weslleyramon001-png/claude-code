@@ -231,6 +231,93 @@ async def write_file(path: str, content: str) -> str:
         return f"Erro ao salvar arquivo: {exc}"
 
 
+async def youtube_search(query: str, api_key: str, max_results: int = 5) -> str:
+    if not api_key:
+        return "YouTube indisponível — adicione YOUTUBE_API_KEY no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/search",
+                params={
+                    "part": "snippet",
+                    "q": query,
+                    "type": "video",
+                    "maxResults": max_results,
+                    "relevanceLanguage": "pt",
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return "Chave da YouTube API inválida ou cota esgotada."
+        return f"Erro na YouTube API (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao buscar no YouTube: {exc}"
+
+    items = data.get("items", [])
+    if not items:
+        return f"Nenhum vídeo encontrado para '{query}'."
+
+    lines = [f"**Resultados do YouTube para '{query}':**\n"]
+    for i, item in enumerate(items, 1):
+        snippet = item.get("snippet", {})
+        video_id = item.get("id", {}).get("videoId", "")
+        title = snippet.get("title", "Sem título")
+        channel = snippet.get("channelTitle", "")
+        description = snippet.get("description", "")[:150].strip()
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        lines.append(f"{i}. **{title}**")
+        lines.append(f"   Canal: {channel}")
+        if description:
+            lines.append(f"   {description}...")
+        lines.append(f"   {url}\n")
+    return "\n".join(lines).strip()
+
+
+async def youtube_channel_stats(channel_id: str, api_key: str) -> str:
+    if not api_key:
+        return "YouTube indisponível — adicione YOUTUBE_API_KEY no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/channels",
+                params={
+                    "part": "snippet,statistics",
+                    "id": channel_id,
+                    "key": api_key,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as exc:
+        return f"Erro ao buscar canal: {exc}"
+
+    items = data.get("items", [])
+    if not items:
+        return f"Canal '{channel_id}' não encontrado."
+
+    ch = items[0]
+    snippet = ch.get("snippet", {})
+    stats = ch.get("statistics", {})
+    name = snippet.get("title", "?")
+    description = snippet.get("description", "")[:200].strip()
+    subscribers = int(stats.get("subscriberCount", 0))
+    views = int(stats.get("viewCount", 0))
+    videos = int(stats.get("videoCount", 0))
+
+    lines = [
+        f"**Canal: {name}**",
+        f"👥 Inscritos: {subscribers:,}".replace(",", "."),
+        f"▶️ Visualizações totais: {views:,}".replace(",", "."),
+        f"🎬 Vídeos publicados: {videos}",
+    ]
+    if description:
+        lines.append(f"\n📝 {description}")
+    return "\n".join(lines)
+
+
 async def get_weather(city: str) -> str:
     WMO_CODES = {
         0: "Céu limpo ☀️",
@@ -303,6 +390,206 @@ async def get_weather(city: str) -> str:
         return f"Erro ao buscar clima: {exc}"
 
 
+# ── Facebook / Instagram ──────────────────────────────────────────────────
+
+async def facebook_instagram_stats(token: str, page_id: str) -> str:
+    if not token:
+        return "Facebook/Instagram indisponível — adicione FACEBOOK_PAGE_TOKEN no Railway."
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            fb_resp = await client.get(
+                f"https://graph.facebook.com/v19.0/{page_id}",
+                params={
+                    "fields": "name,fan_count,followers_count,instagram_business_account",
+                    "access_token": token,
+                },
+            )
+            fb_resp.raise_for_status()
+            fb_data = fb_resp.json()
+
+            lines = ["📊 **Suas redes sociais:**\n"]
+            fb_name = fb_data.get("name", "Página")
+            fb_fans = fb_data.get("fan_count", 0)
+            fb_followers = fb_data.get("followers_count", 0)
+            lines.append(f"**Facebook — {fb_name}**")
+            lines.append(f"👍 Curtidas: {fb_fans:,}".replace(",", "."))
+            lines.append(f"👥 Seguidores: {fb_followers:,}".replace(",", "."))
+
+            ig_account = fb_data.get("instagram_business_account", {})
+            if ig_account:
+                ig_id = ig_account.get("id")
+                ig_resp = await client.get(
+                    f"https://graph.facebook.com/v19.0/{ig_id}",
+                    params={
+                        "fields": "username,followers_count,media_count",
+                        "access_token": token,
+                    },
+                )
+                ig_resp.raise_for_status()
+                ig_data = ig_resp.json()
+                ig_username = ig_data.get("username", "")
+                ig_followers = ig_data.get("followers_count", 0)
+                ig_media = ig_data.get("media_count", 0)
+                lines.append(f"\n**Instagram — @{ig_username}**")
+                lines.append(f"👥 Seguidores: {ig_followers:,}".replace(",", "."))
+                lines.append(f"📸 Posts: {ig_media}")
+            else:
+                lines.append("\n_Instagram não vinculado à página._")
+
+            return "\n".join(lines)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return "Token do Facebook expirado ou inválido. Precisa renovar."
+        return f"Erro na API do Facebook (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao buscar dados do Facebook/Instagram: {exc}"
+
+
+# ── Google OAuth helper ───────────────────────────────────────────────────
+
+async def _google_access_token() -> str:
+    """Troca o refresh_token por um access_token fresco."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id": config.GOOGLE_CLIENT_ID,
+                "client_secret": config.GOOGLE_CLIENT_SECRET,
+                "refresh_token": config.GOOGLE_REFRESH_TOKEN,
+                "grant_type": "refresh_token",
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()["access_token"]
+
+
+# ── Google Drive ───────────────────────────────────────────────────────────
+
+async def drive_list_files(query: str = "", max_results: int = 10) -> str:
+    if not config.GOOGLE_REFRESH_TOKEN:
+        return "Google Drive não configurado — adicione GOOGLE_REFRESH_TOKEN no Railway."
+    try:
+        token = await _google_access_token()
+        params = {
+            "pageSize": max_results,
+            "fields": "files(id,name,mimeType,modifiedTime,size)",
+            "orderBy": "modifiedTime desc",
+        }
+        if query:
+            params["q"] = f"name contains '{query}'"
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                "https://www.googleapis.com/drive/v3/files",
+                params=params,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            resp.raise_for_status()
+            files = resp.json().get("files", [])
+        if not files:
+            return "Nenhum arquivo encontrado no Google Drive."
+        lines = [f"📁 **Google Drive** — {len(files)} arquivo(s):\n"]
+        for f in files:
+            size = int(f.get("size", 0))
+            size_str = f"{size // 1024} KB" if size > 1024 else f"{size} B" if size else "—"
+            lines.append(f"• **{f['name']}** ({size_str}) — `{f['id']}`")
+        return "\n".join(lines)
+    except Exception as exc:
+        return f"Erro ao listar arquivos do Drive: {exc}"
+
+
+async def drive_read_file(file_id: str) -> str:
+    if not config.GOOGLE_REFRESH_TOKEN:
+        return "Google Drive não configurado."
+    try:
+        token = await _google_access_token()
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            meta_resp = await client.get(
+                f"https://www.googleapis.com/drive/v3/files/{file_id}",
+                params={"fields": "name,mimeType"},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            meta_resp.raise_for_status()
+            meta = meta_resp.json()
+            mime = meta.get("mimeType", "")
+            name = meta.get("name", file_id)
+
+            if "google-apps" in mime:
+                export_mime = "text/plain"
+                dl_resp = await client.get(
+                    f"https://www.googleapis.com/drive/v3/files/{file_id}/export",
+                    params={"mimeType": export_mime},
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            else:
+                dl_resp = await client.get(
+                    f"https://www.googleapis.com/drive/v3/files/{file_id}",
+                    params={"alt": "media"},
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            dl_resp.raise_for_status()
+            content = dl_resp.text[:3000]
+        return f"📄 **{name}**\n\n{content}"
+    except Exception as exc:
+        return f"Erro ao ler arquivo do Drive: {exc}"
+
+
+# ── Gmail ──────────────────────────────────────────────────────────────────
+
+async def gmail_list(max_results: int = 5, query: str = "") -> str:
+    if not config.GOOGLE_REFRESH_TOKEN:
+        return "Gmail não configurado — adicione GOOGLE_REFRESH_TOKEN no Railway."
+    try:
+        token = await _google_access_token()
+        params = {"maxResults": max_results, "q": query or "is:unread"}
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            list_resp = await client.get(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+                params=params,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            list_resp.raise_for_status()
+            messages = list_resp.json().get("messages", [])
+            if not messages:
+                return "Nenhum email encontrado."
+            lines = [f"📧 **Gmail** — {len(messages)} email(s):\n"]
+            for msg in messages:
+                detail = await client.get(
+                    f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{msg['id']}",
+                    params={"format": "metadata", "metadataHeaders": ["Subject", "From", "Date"]},
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+                detail.raise_for_status()
+                headers = {h["name"]: h["value"] for h in detail.json().get("payload", {}).get("headers", [])}
+                lines.append(f"• **{headers.get('Subject', '(sem assunto)')}**")
+                lines.append(f"  De: {headers.get('From', '?')} | {headers.get('Date', '')[:16]}")
+        return "\n".join(lines)
+    except Exception as exc:
+        return f"Erro ao listar emails: {exc}"
+
+
+async def gmail_send(to: str, subject: str, body: str) -> str:
+    if not config.GOOGLE_REFRESH_TOKEN:
+        return "Gmail não configurado."
+    try:
+        import base64
+        from email.mime.text import MIMEText
+        token = await _google_access_token()
+        msg = MIMEText(body)
+        msg["to"] = to
+        msg["subject"] = subject
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+                json={"raw": raw},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            resp.raise_for_status()
+        return f"✅ Email enviado para {to} com sucesso!"
+    except Exception as exc:
+        return f"Erro ao enviar email: {exc}"
+
+
 # ── Financial Movements ────────────────────────────────────────────────────
 
 async def tool_add_movement(movement_type: str, amount: float, description: str, category: str = "geral") -> str:
@@ -353,40 +640,6 @@ async def tool_list_movements(limit: int = 10, category: str = "") -> str:
     return "\n".join(lines)
 
 
-async def tool_create_reminder(title: str, description: str = "", due_date: str = "") -> str:
-    from memory import create_reminder as db_create
-    rid = db_create(title, description, due_date)
-    parts = [f"📌 **Lembrete criado!**\n\n**#{rid}** — {title}"]
-    if description:
-        parts.append(f"📝 {description}")
-    if due_date:
-        parts.append(f"📅 Prazo: {due_date}")
-    return "\n".join(parts)
-
-
-async def tool_list_reminders(include_completed: bool = False) -> str:
-    from memory import list_reminders as db_list
-    items = db_list(include_completed)
-    if not items:
-        return "Nenhum lembrete pendente, Ramon."
-    label = " (incluindo concluídos)" if include_completed else ""
-    lines = [f"📋 **Lembretes{label}** — {len(items)} item(s)\n"]
-    for r in items:
-        status = "✅" if r["completed"] else "⏳"
-        due = f" · 📅 {r['due_date']}" if r.get("due_date") else ""
-        desc = f"\n   ↳ {r['description']}" if r.get("description") else ""
-        lines.append(f"{status} **#{r['id']}** {r['title']}{due}{desc}")
-    return "\n".join(lines)
-
-
-async def tool_complete_reminder(reminder_id: int) -> str:
-    from memory import complete_reminder as db_complete
-    success = db_complete(reminder_id)
-    if success:
-        return f"✅ Lembrete #{reminder_id} marcado como concluído!"
-    return f"Lembrete #{reminder_id} não encontrado ou já estava concluído."
-
-
 async def tool_get_balance() -> str:
     from memory import get_balance as db_balance
     b = db_balance()
@@ -398,378 +651,6 @@ async def tool_get_balance() -> str:
         f"{saldo_emoji} Saldo:    **R$ {b['saldo']:,.2f}**\n\n"
         f"_Total de {b['total_movimentos']} movimentos registrados_"
     )
-
-
-async def tool_save_memory(category: str, fact: str) -> str:
-    from memory import save_fact
-    save_fact(category.lower().strip(), fact.strip())
-    return f"🧠 Memorizado em [{category.upper()}]: {fact}"
-
-
-async def tool_list_memories() -> str:
-    from memory import get_facts_with_ids
-    facts = get_facts_with_ids()
-    if not facts:
-        return "Nenhuma memória salva ainda."
-    current_cat = None
-    lines = ["🧠 **Memórias do JARBAS**\n"]
-    for f in facts:
-        if f["category"] != current_cat:
-            current_cat = f["category"]
-            lines.append(f"\n**[{current_cat.upper()}]**")
-        lines.append(f"  #{f['id']} — {f['fact']}")
-    return "\n".join(lines)
-
-
-async def tool_delete_memory(fact_id: int) -> str:
-    from memory import delete_fact
-    success = delete_fact(fact_id)
-    if success:
-        return f"🗑️ Memória #{fact_id} apagada."
-    return f"Memória #{fact_id} não encontrada."
-
-
-# ── YouTube ────────────────────────────────────────────────────────────────
-
-async def _resolve_channel_id(client: httpx.AsyncClient, channel_id: str, api_key: str) -> str:
-    """Resolve @handle para channel ID usando forHandle (1 quota unit, não 100)."""
-    if not channel_id.startswith("@"):
-        return channel_id
-    handle = channel_id.lstrip("@")
-    resp = await client.get(
-        "https://www.googleapis.com/youtube/v3/channels",
-        params={"part": "id", "forHandle": handle, "key": api_key},
-    )
-    resp.raise_for_status()
-    items = resp.json().get("items", [])
-    if not items:
-        raise ValueError(f"Canal '{channel_id}' não encontrado no YouTube.")
-    return items[0]["id"]
-
-
-def _youtube_error(exc: httpx.HTTPStatusError) -> str:
-    try:
-        reason = exc.response.json()["error"]["errors"][0].get("reason", "")
-        message = exc.response.json()["error"].get("message", "")
-    except Exception:
-        reason, message = "", ""
-    if exc.response.status_code == 403:
-        if "quotaExceeded" in reason:
-            return "Quota diária da YouTube API esgotada (10.000 unidades/dia). Tente amanhã."
-        if "keyInvalid" in reason:
-            return "Chave da YouTube API inválida. Verifique YOUTUBE_API_KEY no Railway."
-        if "accessNotConfigured" in reason:
-            return "YouTube Data API v3 não está habilitada para esta chave. Ative no Google Cloud Console."
-        return f"YouTube API bloqueou a requisição (403). Verifique restrições de IP/chave no Google Cloud Console. Detalhe: {message or reason}"
-    return f"Erro YouTube API (HTTP {exc.response.status_code}): {message}"
-
-
-async def get_youtube_channel_stats(channel_alias: str, api_key: str, channels_config: list) -> str:
-    if not api_key:
-        return "YouTube API não configurada. Adicione YOUTUBE_API_KEY no Railway."
-
-    channel_id = None
-    for ch in channels_config:
-        if ch.get("alias") == channel_alias:
-            channel_id = ch.get("channel_id")
-            break
-
-    if not channel_id:
-        aliases = [c.get("alias") for c in channels_config]
-        return f"Canal '{channel_alias}' não encontrado. Aliases disponíveis: {aliases}"
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            channel_id = await _resolve_channel_id(client, channel_id, api_key)
-
-            stats_resp = await client.get(
-                "https://www.googleapis.com/youtube/v3/channels",
-                params={"part": "snippet,statistics", "id": channel_id, "key": api_key},
-            )
-            stats_resp.raise_for_status()
-            items = stats_resp.json().get("items", [])
-            if not items:
-                return "Canal não encontrado."
-
-            ch = items[0]
-            name = ch["snippet"]["title"]
-            desc = ch["snippet"].get("description", "")[:200]
-            stats = ch["statistics"]
-            subs = int(stats.get("subscriberCount", 0))
-            views = int(stats.get("viewCount", 0))
-            videos = int(stats.get("videoCount", 0))
-
-            return (
-                f"📺 **{name}**\n\n"
-                f"👥 Inscritos: **{subs:,}**\n"
-                f"👁️ Views totais: **{views:,}**\n"
-                f"🎬 Vídeos publicados: **{videos}**\n\n"
-                f"_{desc}_"
-            )
-    except ValueError as exc:
-        return str(exc)
-    except httpx.HTTPStatusError as exc:
-        return _youtube_error(exc)
-    except Exception as exc:
-        return f"Erro ao consultar YouTube: {exc}"
-
-
-async def get_youtube_recent_videos(channel_alias: str, api_key: str, channels_config: list, max_results: int = 5) -> str:
-    if not api_key:
-        return "YouTube API não configurada. Adicione YOUTUBE_API_KEY no Railway."
-
-    channel_id = None
-    for ch in channels_config:
-        if ch.get("alias") == channel_alias:
-            channel_id = ch.get("channel_id")
-            break
-
-    if not channel_id:
-        aliases = [c.get("alias") for c in channels_config]
-        return f"Canal '{channel_alias}' não encontrado. Aliases disponíveis: {aliases}"
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            channel_id = await _resolve_channel_id(client, channel_id, api_key)
-
-            videos_resp = await client.get(
-                "https://www.googleapis.com/youtube/v3/search",
-                params={
-                    "part": "snippet", "channelId": channel_id, "type": "video",
-                    "order": "date", "maxResults": max_results, "key": api_key,
-                },
-            )
-            videos_resp.raise_for_status()
-            items = videos_resp.json().get("items", [])
-            if not items:
-                return "Nenhum vídeo encontrado no canal."
-
-            video_ids = [i["id"]["videoId"] for i in items]
-            stats_resp = await client.get(
-                "https://www.googleapis.com/youtube/v3/videos",
-                params={"part": "statistics,contentDetails", "id": ",".join(video_ids), "key": api_key},
-            )
-            stats_resp.raise_for_status()
-            stats_map = {v["id"]: v for v in stats_resp.json().get("items", [])}
-
-            lines = [f"🎬 **Últimos {len(items)} vídeos**\n"]
-            for item in items:
-                vid_id = item["id"]["videoId"]
-                title = item["snippet"]["title"]
-                published = item["snippet"]["publishedAt"][:10]
-                url = f"https://youtube.com/watch?v={vid_id}"
-                vstats = stats_map.get(vid_id, {}).get("statistics", {})
-                views = int(vstats.get("viewCount", 0))
-                likes = int(vstats.get("likeCount", 0))
-                lines.append(f"▶️ **{title}**")
-                lines.append(f"   👁️ {views:,} views · 👍 {likes:,} likes · 📅 {published}")
-                lines.append(f"   {url}\n")
-
-            return "\n".join(lines)
-    except ValueError as exc:
-        return str(exc)
-    except httpx.HTTPStatusError as exc:
-        return _youtube_error(exc)
-    except Exception as exc:
-        return f"Erro ao buscar vídeos: {exc}"
-
-
-# ── Meta (Facebook + Instagram) ────────────────────────────────────────────
-
-_GRAPH_BASE = "https://graph.facebook.com/v19.0"
-
-
-def _meta_error(exc: httpx.HTTPStatusError) -> str:
-    try:
-        error = exc.response.json().get("error", {})
-        message = error.get("message", "")
-        code = error.get("code", 0)
-    except Exception:
-        message, code = "", 0
-    if exc.response.status_code == 401 or code == 190:
-        return "Token Meta expirado ou inválido. Gere um novo Page Access Token no Graph API Explorer."
-    if code == 200:
-        return "Permissão negada pelo Meta. Verifique as permissões do app no Graph API Explorer."
-    if code in (4, 32):
-        return "Limite de chamadas da API Meta atingido. Aguarde alguns minutos."
-    return f"Erro Meta API (HTTP {exc.response.status_code}, code {code}): {message}"
-
-
-async def get_facebook_page_stats(page_id: str, page_access_token: str) -> str:
-    if not page_access_token:
-        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
-    if not page_id:
-        return "META_PAGE_ID não configurado no Railway."
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"{_GRAPH_BASE}/{page_id}",
-                params={
-                    "fields": "name,fan_count,followers_count,about,website",
-                    "access_token": page_access_token,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        name = data.get("name", "?")
-        fans = data.get("fan_count", 0)
-        followers = data.get("followers_count", 0)
-        about = data.get("about", "")
-        website = data.get("website", "")
-        lines = [
-            f"📘 **{name}** (Facebook Page)",
-            f"👥 Curtidas: **{fans:,}**",
-            f"👥 Seguidores: **{followers:,}**",
-        ]
-        if about:
-            lines.append(f"📝 {about}")
-        if website:
-            lines.append(f"🔗 {website}")
-        return "\n".join(lines)
-    except httpx.HTTPStatusError as exc:
-        return _meta_error(exc)
-    except Exception as exc:
-        return f"Erro ao consultar página do Facebook: {exc}"
-
-
-async def get_instagram_profile(ig_user_id: str, page_access_token: str) -> str:
-    if not page_access_token:
-        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
-    if not ig_user_id:
-        return "META_IG_USER_ID não configurado no Railway."
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"{_GRAPH_BASE}/{ig_user_id}",
-                params={
-                    "fields": "name,username,biography,followers_count,follows_count,media_count,website",
-                    "access_token": page_access_token,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        username = data.get("username", "?")
-        name = data.get("name", "?")
-        bio = data.get("biography", "")
-        followers = data.get("followers_count", 0)
-        following = data.get("follows_count", 0)
-        posts = data.get("media_count", 0)
-        website = data.get("website", "")
-        lines = [
-            f"📸 **@{username}** ({name})",
-            f"👥 Seguidores: **{followers:,}**",
-            f"➡️ Seguindo: **{following:,}**",
-            f"🖼️ Publicações: **{posts}**",
-        ]
-        if bio:
-            lines.append(f"📝 {bio}")
-        if website:
-            lines.append(f"🔗 {website}")
-        return "\n".join(lines)
-    except httpx.HTTPStatusError as exc:
-        return _meta_error(exc)
-    except Exception as exc:
-        return f"Erro ao consultar Instagram: {exc}"
-
-
-async def get_instagram_recent_posts(ig_user_id: str, page_access_token: str, limit: int = 5) -> str:
-    if not page_access_token:
-        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
-    if not ig_user_id:
-        return "META_IG_USER_ID não configurado no Railway."
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"{_GRAPH_BASE}/{ig_user_id}/media",
-                params={
-                    "fields": "id,caption,media_type,timestamp,like_count,comments_count,permalink",
-                    "limit": limit,
-                    "access_token": page_access_token,
-                },
-            )
-            resp.raise_for_status()
-            items = resp.json().get("data", [])
-        if not items:
-            return "Nenhuma publicação encontrada no Instagram."
-        lines = [f"📸 **Últimas {len(items)} publicações no Instagram**\n"]
-        type_icon = {"IMAGE": "🖼️", "VIDEO": "🎬", "CAROUSEL_ALBUM": "📂"}
-        for post in items:
-            caption = (post.get("caption") or "")[:120].replace("\n", " ")
-            if len(post.get("caption") or "") > 120:
-                caption += "..."
-            icon = type_icon.get(post.get("media_type", ""), "📄")
-            ts = post.get("timestamp", "")[:10]
-            likes = post.get("like_count", 0)
-            comments = post.get("comments_count", 0)
-            permalink = post.get("permalink", "")
-            lines.append(f"{icon} _{ts}_ · 👍 **{likes}** · 💬 **{comments}**")
-            if caption:
-                lines.append(f"   \"{caption}\"")
-            if permalink:
-                lines.append(f"   {permalink}")
-            lines.append("")
-        return "\n".join(lines)
-    except httpx.HTTPStatusError as exc:
-        return _meta_error(exc)
-    except Exception as exc:
-        return f"Erro ao buscar posts do Instagram: {exc}"
-
-
-async def post_to_facebook(message: str, page_id: str, page_access_token: str) -> str:
-    if not page_access_token:
-        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
-    if not page_id:
-        return "META_PAGE_ID não configurado no Railway."
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(
-                f"{_GRAPH_BASE}/{page_id}/feed",
-                data={"message": message, "access_token": page_access_token},
-            )
-            resp.raise_for_status()
-            post_id = resp.json().get("id", "?")
-        preview = message[:200] + ("..." if len(message) > 200 else "")
-        return f"✅ **Publicado no Facebook!**\n\nID: `{post_id}`\n\n> {preview}"
-    except httpx.HTTPStatusError as exc:
-        return _meta_error(exc)
-    except Exception as exc:
-        return f"Erro ao publicar no Facebook: {exc}"
-
-
-async def post_to_instagram(ig_user_id: str, page_access_token: str, image_url: str, caption: str = "") -> str:
-    if not page_access_token:
-        return "Meta não configurada. Adicione META_PAGE_ACCESS_TOKEN no Railway."
-    if not ig_user_id:
-        return "META_IG_USER_ID não configurado no Railway."
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            container_resp = await client.post(
-                f"{_GRAPH_BASE}/{ig_user_id}/media",
-                data={"image_url": image_url, "caption": caption, "access_token": page_access_token},
-            )
-            container_resp.raise_for_status()
-            creation_id = container_resp.json().get("id")
-            if not creation_id:
-                return "Erro: container de mídia não foi criado. Verifique se a URL da imagem é pública."
-
-            publish_resp = await client.post(
-                f"{_GRAPH_BASE}/{ig_user_id}/media_publish",
-                data={"creation_id": creation_id, "access_token": page_access_token},
-            )
-            publish_resp.raise_for_status()
-            media_id = publish_resp.json().get("id", "?")
-
-        preview_caption = caption[:200] + ("..." if len(caption) > 200 else "") if caption else "(sem legenda)"
-        return (
-            f"✅ **Publicado no Instagram!**\n\n"
-            f"ID: `{media_id}`\n"
-            f"📸 Imagem: {image_url[:80]}\n"
-            f"📝 {preview_caption}"
-        )
-    except httpx.HTTPStatusError as exc:
-        return _meta_error(exc)
-    except Exception as exc:
-        return f"Erro ao publicar no Instagram: {exc}"
 
 
 # ── Claude tool definitions ────────────────────────────────────────────────
@@ -860,6 +741,35 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
+            "name": "youtube_search",
+            "description": (
+                "Busca vídeos no YouTube por palavra-chave. "
+                "Use quando Ramon pedir para encontrar vídeos, tutoriais, ou conteúdo no YouTube."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Termo de busca. Ex: 'como montar PC gamer', 'planilhas Excel'"},
+                    "max_results": {"type": "integer", "description": "Número de resultados (1-10). Padrão: 5.", "default": 5},
+                },
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "youtube_channel_stats",
+            "description": (
+                "Retorna estatísticas de um canal do YouTube: inscritos, visualizações e vídeos publicados. "
+                "Use quando Ramon quiser ver dados do próprio canal ou de qualquer outro canal."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channel_id": {"type": "string", "description": "ID do canal YouTube (formato UCxxxxxxxx)."},
+                },
+                "required": ["channel_id"],
+            },
+        },
+        {
             "name": "add_movement",
             "description": (
                 "Registra uma movimentação financeira (entrada ou saída). "
@@ -902,6 +812,75 @@ def format_tools_for_claude() -> list[dict]:
                 "Use quando Ramon perguntar quanto tem, qual o saldo, como está o caixa."
             ),
             "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "facebook_instagram_stats",
+            "description": (
+                "Consulta estatísticas da página do Facebook e do Instagram de Ramon em tempo real. "
+                "Retorna curtidas e seguidores do Facebook, e seguidores e posts do Instagram. "
+                "Use quando Ramon perguntar sobre seguidores, curtidas, stats das redes sociais, Instagram ou Facebook."
+            ),
+            "input_schema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
+            "name": "drive_list_files",
+            "description": (
+                "Lista arquivos do Google Drive de Ramon. "
+                "Use quando ele perguntar sobre arquivos no Drive, quiser buscar documentos ou ver o que tem salvo."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Termo de busca pelo nome do arquivo. Deixe vazio para listar os mais recentes.", "default": ""},
+                    "max_results": {"type": "integer", "description": "Quantidade máxima de arquivos (padrão: 10).", "default": 10},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "drive_read_file",
+            "description": (
+                "Lê o conteúdo de um arquivo do Google Drive pelo ID. "
+                "Use após listar os arquivos para ler um específico."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "file_id": {"type": "string", "description": "ID do arquivo no Google Drive."},
+                },
+                "required": ["file_id"],
+            },
+        },
+        {
+            "name": "gmail_list",
+            "description": (
+                "Lista emails do Gmail de Ramon. "
+                "Use quando ele quiser ver emails, checar a caixa de entrada ou buscar mensagens."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "max_results": {"type": "integer", "description": "Quantidade de emails (padrão: 5).", "default": 5},
+                    "query": {"type": "string", "description": "Filtro de busca estilo Gmail. Ex: 'is:unread', 'from:alguem@gmail.com', 'subject:reunião'. Padrão: 'is:unread'", "default": ""},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "gmail_send",
+            "description": (
+                "Envia um email pelo Gmail de Ramon. "
+                "Use quando ele pedir para enviar um email, responder alguém ou mandar mensagem."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string", "description": "Endereço de email do destinatário."},
+                    "subject": {"type": "string", "description": "Assunto do email."},
+                    "body": {"type": "string", "description": "Corpo do email em texto simples."},
+                },
+                "required": ["to", "subject", "body"],
+            },
         },
         {
             "name": "system_info",
@@ -955,47 +934,6 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
-            "name": "create_reminder",
-            "description": (
-                "Cria um lembrete para Ramon. Use quando ele pedir para lembrar de algo, "
-                "agendar uma tarefa ou registrar um prazo."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string", "description": "Título do lembrete."},
-                    "description": {"type": "string", "description": "Detalhes adicionais (opcional).", "default": ""},
-                    "due_date": {"type": "string", "description": "Data/prazo (opcional). Ex: '2026-07-18', 'antes de julho'.", "default": ""},
-                },
-                "required": ["title"],
-            },
-        },
-        {
-            "name": "list_reminders",
-            "description": (
-                "Lista os lembretes pendentes de Ramon. "
-                "Use quando ele perguntar o que tem para fazer, quais são os lembretes, etc."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "include_completed": {"type": "boolean", "description": "Se True, inclui lembretes já concluídos.", "default": False},
-                },
-                "required": [],
-            },
-        },
-        {
-            "name": "complete_reminder",
-            "description": "Marca um lembrete como concluído pelo ID.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "reminder_id": {"type": "integer", "description": "ID do lembrete a concluir."},
-                },
-                "required": ["reminder_id"],
-            },
-        },
-        {
             "name": "take_screenshot",
             "description": (
                 "Tira um screenshot de qualquer URL usando o browser headless. "
@@ -1026,137 +964,46 @@ def format_tools_for_claude() -> list[dict]:
             },
         },
         {
-            "name": "save_memory",
+            "name": "trigger_n8n",
             "description": (
-                "Salva um fato importante sobre Ramon na memória persistente do JARBAS. "
-                "Use sempre que Ramon revelar algo relevante: preferências, metas, contexto de negócio, "
-                "decisões tomadas, informações pessoais ou qualquer coisa que deva ser lembrada no futuro."
+                "Aciona um fluxo de automação no n8n. Use para executar tarefas automáticas "
+                "como postar em redes sociais, enviar emails, buscar dados externos, "
+                "processar informações, ou qualquer outra automação configurada no n8n. "
+                "Especifique a ação desejada e os dados necessários."
             ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "category": {
+                    "action": {
                         "type": "string",
-                        "description": "Categoria do fato. Ex: 'identity', 'business', 'goals', 'preferences', 'finance', 'projects'.",
+                        "description": "Nome da ação a executar. Ex: 'postar_instagram', 'enviar_email', 'buscar_dados'."
                     },
-                    "fact": {
-                        "type": "string",
-                        "description": "O fato a memorizar, escrito de forma clara e objetiva. Ex: 'Prefere respostas curtas e diretas.'",
+                    "data": {
+                        "type": "object",
+                        "description": "Dados necessários para a automação. Ex: {'mensagem': 'Texto do post', 'destinatario': 'email@exemplo.com'}."
                     },
                 },
-                "required": ["category", "fact"],
-            },
-        },
-        {
-            "name": "list_memories",
-            "description": (
-                "Lista todas as memórias salvas sobre Ramon. "
-                "Use quando Ramon perguntar o que o JARBAS sabe sobre ele, ou antes de salvar algo novo para evitar duplicatas."
-            ),
-            "input_schema": {"type": "object", "properties": {}, "required": []},
-        },
-        {
-            "name": "delete_memory",
-            "description": "Apaga uma memória específica pelo ID (obtido via list_memories). Use quando Ramon pedir para esquecer algo ou corrigir uma informação errada.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "fact_id": {"type": "integer", "description": "ID da memória a apagar."},
-                },
-                "required": ["fact_id"],
-            },
-        },
-        {
-            "name": "get_youtube_channel_stats",
-            "description": (
-                "Consulta estatísticas de um canal do YouTube: inscritos, views totais e número de vídeos. "
-                "Use quando Ramon perguntar sobre o desempenho do canal, quantos inscritos tem, etc. "
-                "O alias padrão do canal de Ramon é 'ramon'."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "channel_alias": {"type": "string", "description": "Alias do canal configurado. Ex: 'ramon'", "default": "ramon"},
-                },
-                "required": ["channel_alias"],
-            },
-        },
-        {
-            "name": "get_youtube_recent_videos",
-            "description": (
-                "Lista os vídeos mais recentes de um canal do YouTube com views, likes e links. "
-                "Use quando Ramon perguntar sobre os últimos vídeos, desempenho de vídeos recentes, etc."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "channel_alias": {"type": "string", "description": "Alias do canal configurado. Ex: 'ramon'", "default": "ramon"},
-                    "max_results": {"type": "integer", "description": "Número de vídeos a retornar (padrão: 5, máximo: 10).", "default": 5},
-                },
-                "required": ["channel_alias"],
-            },
-        },
-        {
-            "name": "get_facebook_page_stats",
-            "description": (
-                "Consulta estatísticas da página do Facebook de Ramon: curtidas, seguidores, descrição. "
-                "Use quando Ramon perguntar sobre o desempenho da página, quantos seguidores tem no Facebook, etc."
-            ),
-            "input_schema": {"type": "object", "properties": {}, "required": []},
-        },
-        {
-            "name": "get_instagram_profile",
-            "description": (
-                "Consulta o perfil do Instagram de Ramon: seguidores, seguindo, número de posts, bio. "
-                "Use quando Ramon perguntar sobre o Instagram dele, quantos seguidores tem, etc."
-            ),
-            "input_schema": {"type": "object", "properties": {}, "required": []},
-        },
-        {
-            "name": "get_instagram_recent_posts",
-            "description": (
-                "Lista as publicações recentes do Instagram de Ramon com curtidas, comentários e links. "
-                "Use quando Ramon perguntar sobre os últimos posts, engajamento, métricas de publicações."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "limit": {"type": "integer", "description": "Número de posts a retornar (padrão: 5, máximo: 20).", "default": 5},
-                },
-                "required": [],
-            },
-        },
-        {
-            "name": "post_to_facebook",
-            "description": (
-                "Publica uma mensagem de texto na página do Facebook de Ramon. "
-                "Use quando Ramon pedir para postar algo no Facebook ou publicar na página."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "message": {"type": "string", "description": "Texto da publicação."},
-                },
-                "required": ["message"],
-            },
-        },
-        {
-            "name": "post_to_instagram",
-            "description": (
-                "Publica uma foto com legenda no Instagram de Ramon. "
-                "A imagem deve ser uma URL pública acessível (JPEG/PNG). "
-                "Use quando Ramon pedir para postar no Instagram com uma imagem e legenda."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "image_url": {"type": "string", "description": "URL pública da imagem (JPEG ou PNG). Deve ser acessível publicamente."},
-                    "caption": {"type": "string", "description": "Legenda da publicação com hashtags. Opcional.", "default": ""},
-                },
-                "required": ["image_url"],
+                "required": ["action"],
             },
         },
     ]
+
+
+async def trigger_n8n(action: str, data: dict = {}) -> str:
+    n8n_url = os.getenv("N8N_WEBHOOK_URL", "https://n8n-production-fea4.up.railway.app/webhook/818e253f-0228-474a-8b6d-eff3b5f0bcc8")
+    payload = {"action": action, "data": data}
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(n8n_url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+            return f"Automação '{action}' executada com sucesso. Resultado: {result}"
+    except httpx.TimeoutException:
+        return f"Automação '{action}' demorou demais para responder. Tente novamente."
+    except httpx.HTTPStatusError as exc:
+        return f"Erro na automação '{action}' (HTTP {exc.response.status_code})."
+    except Exception as exc:
+        return f"Erro ao acionar automação '{action}': {exc}"
 
 
 # ── Tool dispatcher ──────────────────────────────────────────────────────
@@ -1182,6 +1029,17 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "get_weather":
             return await get_weather(tool_input.get("city", ""))
+        elif tool_name == "youtube_search":
+            return await youtube_search(
+                query=tool_input.get("query", ""),
+                api_key=config.YOUTUBE_API_KEY,
+                max_results=tool_input.get("max_results", 5),
+            )
+        elif tool_name == "youtube_channel_stats":
+            return await youtube_channel_stats(
+                channel_id=tool_input.get("channel_id", ""),
+                api_key=config.YOUTUBE_API_KEY,
+            )
         elif tool_name == "add_movement":
             return await tool_add_movement(
                 movement_type=tool_input.get("movement_type", "entrada"),
@@ -1196,27 +1054,29 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
             )
         elif tool_name == "get_balance":
             return await tool_get_balance()
-        elif tool_name == "create_reminder":
-            return await tool_create_reminder(
-                title=tool_input.get("title", ""),
-                description=tool_input.get("description", ""),
-                due_date=tool_input.get("due_date", ""),
+        elif tool_name == "facebook_instagram_stats":
+            return await facebook_instagram_stats(
+                token=config.FACEBOOK_PAGE_TOKEN,
+                page_id=config.FACEBOOK_PAGE_ID,
             )
-        elif tool_name == "list_reminders":
-            return await tool_list_reminders(
-                include_completed=tool_input.get("include_completed", False),
+        elif tool_name == "drive_list_files":
+            return await drive_list_files(
+                query=tool_input.get("query", ""),
+                max_results=tool_input.get("max_results", 10),
             )
-        elif tool_name == "complete_reminder":
-            return await tool_complete_reminder(
-                reminder_id=int(tool_input.get("reminder_id", 0)),
+        elif tool_name == "drive_read_file":
+            return await drive_read_file(file_id=tool_input.get("file_id", ""))
+        elif tool_name == "gmail_list":
+            return await gmail_list(
+                max_results=tool_input.get("max_results", 5),
+                query=tool_input.get("query", ""),
             )
-        elif tool_name == "take_screenshot":
-            return await take_screenshot(
-                url=tool_input.get("url", ""),
-                full_page=tool_input.get("full_page", False),
+        elif tool_name == "gmail_send":
+            return await gmail_send(
+                to=tool_input.get("to", ""),
+                subject=tool_input.get("subject", ""),
+                body=tool_input.get("body", ""),
             )
-        elif tool_name == "browse_and_read":
-            return await browse_and_read(url=tool_input.get("url", ""))
         elif tool_name == "system_info":
             return await system_info()
         elif tool_name == "run_command":
@@ -1233,58 +1093,17 @@ async def process_tool_call(tool_name: str, tool_input: dict, config: Any):
                 path=tool_input.get("path", ""),
                 content=tool_input.get("content", ""),
             )
-        elif tool_name == "save_memory":
-            return await tool_save_memory(
-                category=tool_input.get("category", "general"),
-                fact=tool_input.get("fact", ""),
+        elif tool_name == "take_screenshot":
+            return await take_screenshot(
+                url=tool_input.get("url", ""),
+                full_page=tool_input.get("full_page", False),
             )
-        elif tool_name == "list_memories":
-            return await tool_list_memories()
-        elif tool_name == "delete_memory":
-            return await tool_delete_memory(
-                fact_id=int(tool_input.get("fact_id", 0)),
-            )
-        elif tool_name == "get_youtube_channel_stats":
-            return await get_youtube_channel_stats(
-                channel_alias=tool_input.get("channel_alias", "ramon"),
-                api_key=config.YOUTUBE_API_KEY,
-                channels_config=config.YOUTUBE_CHANNELS,
-            )
-        elif tool_name == "get_youtube_recent_videos":
-            return await get_youtube_recent_videos(
-                channel_alias=tool_input.get("channel_alias", "ramon"),
-                api_key=config.YOUTUBE_API_KEY,
-                channels_config=config.YOUTUBE_CHANNELS,
-                max_results=tool_input.get("max_results", 5),
-            )
-        elif tool_name == "get_facebook_page_stats":
-            return await get_facebook_page_stats(
-                page_id=config.META_PAGE_ID,
-                page_access_token=config.META_PAGE_ACCESS_TOKEN,
-            )
-        elif tool_name == "get_instagram_profile":
-            return await get_instagram_profile(
-                ig_user_id=config.META_IG_USER_ID,
-                page_access_token=config.META_PAGE_ACCESS_TOKEN,
-            )
-        elif tool_name == "get_instagram_recent_posts":
-            return await get_instagram_recent_posts(
-                ig_user_id=config.META_IG_USER_ID,
-                page_access_token=config.META_PAGE_ACCESS_TOKEN,
-                limit=tool_input.get("limit", 5),
-            )
-        elif tool_name == "post_to_facebook":
-            return await post_to_facebook(
-                message=tool_input.get("message", ""),
-                page_id=config.META_PAGE_ID,
-                page_access_token=config.META_PAGE_ACCESS_TOKEN,
-            )
-        elif tool_name == "post_to_instagram":
-            return await post_to_instagram(
-                ig_user_id=config.META_IG_USER_ID,
-                page_access_token=config.META_PAGE_ACCESS_TOKEN,
-                image_url=tool_input.get("image_url", ""),
-                caption=tool_input.get("caption", ""),
+        elif tool_name == "browse_and_read":
+            return await browse_and_read(url=tool_input.get("url", ""))
+        elif tool_name == "trigger_n8n":
+            return await trigger_n8n(
+                action=tool_input.get("action", ""),
+                data=tool_input.get("data", {}),
             )
         else:
             return f"Ferramenta desconhecida: '{tool_name}'."

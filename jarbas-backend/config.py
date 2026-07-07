@@ -18,31 +18,28 @@ class Config:
 
     # ── ElevenLabs Voice ───────────────────────────────────────────────────
     ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
-    # Daniel — voz britânica masculina, autoritária, estilo JARVIS
-    ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "onwK4e9ZLuTAKqWW03F9")
+    # Mateus — voz masculina clara em PT-BR (padrão para JARBAS)
+    ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "XrExE9yKIg1WjnnlVkGX")
 
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
     # ── YouTube Data API ───────────────────────────────────────────────────
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
-    # JSON list: [{"alias": "ramon", "channel_id": "@weslleyramon6512"}]
-    YOUTUBE_CHANNELS: list = __import__("json").loads(os.getenv("YOUTUBE_CHANNELS", "[]"))
+    # JSON array: [{"alias": "meu_canal", "channel_id": "UCxxxxxxx"}]
+    YOUTUBE_CHANNELS: str = os.getenv("YOUTUBE_CHANNELS", "[]")
 
-    # ── Meta (Facebook + Instagram) ────────────────────────────────────────
-    META_APP_ID: str = os.getenv("META_APP_ID", "2270042597068200")
-    META_APP_SECRET: str = os.getenv("META_APP_SECRET", "")
-    # Page Access Token — Railway usa FACEBOOK_PAGE_TOKEN, META_PAGE_ACCESS_TOKEN como fallback
-    META_PAGE_ACCESS_TOKEN: str = os.getenv("FACEBOOK_PAGE_TOKEN", "") or os.getenv("META_PAGE_ACCESS_TOKEN", "")
-    # Page ID — Railway usa FACEBOOK_PAGE_ID, META_PAGE_ID como fallback
-    META_PAGE_ID: str = os.getenv("FACEBOOK_PAGE_ID", "") or os.getenv("META_PAGE_ID", "")
-    # Instagram Business/Creator Account ID (diferente do @username)
-    META_IG_USER_ID: str = os.getenv("META_IG_USER_ID", "") or os.getenv("INSTAGRAM_USER_ID", "")
+    # ── Facebook / Instagram ───────────────────────────────────────────────
+    FACEBOOK_PAGE_TOKEN: str = os.getenv("FACEBOOK_PAGE_TOKEN", "")
+    FACEBOOK_PAGE_ID: str = os.getenv("FACEBOOK_PAGE_ID", "1282247241627685")
+
+    # ── Google Drive / Gmail ───────────────────────────────────────────────
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REFRESH_TOKEN: str = os.getenv("GOOGLE_REFRESH_TOKEN", "")
 
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
-    # Token de acesso para proteger a API. Deixe vazio para acesso aberto (dev local).
-    ACCESS_TOKEN: str = os.getenv("ACCESS_TOKEN", "")
 
     # ── CORS ───────────────────────────────────────────────────────────────
     # Comma-separated list of allowed origins, e.g. "https://myapp.com,https://jarbas.up.railway.app"
@@ -61,10 +58,10 @@ class Config:
     CLAUDE_MODEL: str = "claude-sonnet-4-6"
 
     # Max tokens for Claude responses
-    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "4096"))
+    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "2048"))
 
     # How many past messages to include in context
-    HISTORY_LIMIT: int = int(os.getenv("HISTORY_LIMIT", "30"))
+    HISTORY_LIMIT: int = int(os.getenv("HISTORY_LIMIT", "20"))
 
     @property
     def allowed_origins(self) -> list[str]:
@@ -83,6 +80,7 @@ class Config:
             "claude": bool(self.ANTHROPIC_API_KEY),
             "voice": bool(self.ELEVENLABS_API_KEY),
             "web_search": bool(self.TAVILY_API_KEY),
+            "youtube": bool(self.YOUTUBE_API_KEY),
             "version": self.APP_VERSION,
         }
 
