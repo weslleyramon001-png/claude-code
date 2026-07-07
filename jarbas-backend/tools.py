@@ -16,6 +16,7 @@ import httpx
 import pytz
 import psutil
 from browser import take_screenshot, browse_and_read
+from config import config
 
 
 # ── Tool implementations ─────────────────────────────────────────────────
