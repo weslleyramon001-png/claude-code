@@ -24,6 +24,9 @@ class Config:
     # ── Tavily Web Search ──────────────────────────────────────────────────
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
+    # ── Gemini Live (Google AI) ────────────────────────────────────────────
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
     # ── YouTube Data API ───────────────────────────────────────────────────
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
     # JSON array: [{"alias": "meu_canal", "channel_id": "UCxxxxxxx"}]
@@ -82,6 +85,7 @@ class Config:
             "voice": bool(self.ELEVENLABS_API_KEY),
             "web_search": bool(self.TAVILY_API_KEY),
             "youtube": bool(self.YOUTUBE_API_KEY),
+            "gemini_live": bool(self.GEMINI_API_KEY),
             "version": self.APP_VERSION,
         }
 

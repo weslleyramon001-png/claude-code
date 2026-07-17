@@ -32,6 +32,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from config import config
+from gemini_live import run_gemini_live_session
 from memory import (
     save_message,
     get_history,
@@ -628,6 +629,33 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
     except WebSocketDisconnect:
         # Client disconnected — clean exit, no error
+        pass
+
+
+# ── Gemini Live WebSocket ──────────────────────────────────────────────────
+
+@app.websocket("/ws/gemini/{session_id}")
+async def websocket_gemini_live(websocket: WebSocket, session_id: str, token: str = ""):
+    """
+    WebSocket para conversa por voz em tempo real com o Gemini Live.
+
+    Cliente envia:  {"type": "audio_chunk", "data": "<base64 PCM 16kHz>"}
+                    {"type": "text", "message": "texto"}
+                    {"type": "end_turn"}
+
+    Servidor emite: {"type": "gemini_ready"}
+                    {"type": "gemini_text", "content": "..."}
+                    {"type": "gemini_audio", "data": "<base64>", "mime_type": "audio/pcm;rate=24000"}
+                    {"type": "gemini_turn_complete"}
+                    {"type": "error", "message": "..."}
+    """
+    if config.ACCESS_TOKEN and token != config.ACCESS_TOKEN:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+    await websocket.accept()
+    try:
+        await run_gemini_live_session(websocket, session_id)
+    except WebSocketDisconnect:
         pass
 
 

@@ -827,6 +827,107 @@
       scrollbar-color: var(--border) transparent;
     }
 
+    /* ── Gemini Live Button ─────────────────────────────────────────── */
+    #gemini-live-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+      position: relative;
+    }
+    #gemini-live-btn:hover { color: #4ade80; background: rgba(74,222,128,0.1); }
+    #gemini-live-btn.active { color: #4ade80; animation: pulse-mic 1s infinite; }
+    #gemini-live-btn .gl-badge {
+      position: absolute;
+      top: 2px; right: 2px;
+      font-size: 7px;
+      background: #4ade80;
+      color: #000;
+      border-radius: 3px;
+      padding: 1px 3px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Gemini Live Overlay ─────────────────────────────────────────── */
+    #gemini-overlay {
+      position: absolute;
+      bottom: 100%;
+      left: 0; right: 0;
+      background: rgba(6,6,20,0.97);
+      border: 1px solid rgba(74,222,128,0.4);
+      border-radius: 16px 16px 0 0;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      backdrop-filter: blur(20px);
+    }
+    #gemini-overlay h4 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #4ade80;
+      margin: 0;
+    }
+    #gemini-orb {
+      position: relative;
+      width: 120px; height: 120px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .gorb-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid transparent;
+    }
+    .gorb-r1 { width: 120px; height: 120px; border-color: rgba(74,222,128,0.4); animation: rotate-cw 6s linear infinite; border-top-color: rgba(74,222,128,0.9); }
+    .gorb-r2 { width: 88px;  height: 88px;  border-color: rgba(52,211,153,0.3);  animation: rotate-ccw 4s linear infinite; border-right-color: rgba(52,211,153,0.9); }
+    .gorb-r3 { width: 60px;  height: 60px;  border-color: rgba(16,185,129,0.25); animation: rotate-cw 3s linear infinite; border-bottom-color: rgba(16,185,129,0.8); }
+    #gemini-orb.active .gorb-r1 { animation-duration: 1.2s; }
+    #gemini-orb.active .gorb-r2 { animation-duration: 0.9s; }
+    #gemini-orb.active .gorb-r3 { animation-duration: 0.6s; }
+    .gorb-core {
+      position: absolute; width: 42px; height: 42px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(74,222,128,0.35) 0%, rgba(9,5,15,0.9) 100%);
+      border: 1px solid rgba(74,222,128,0.6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; z-index: 2;
+      box-shadow: 0 0 16px rgba(74,222,128,0.3);
+    }
+    #gemini-status {
+      font-size: 0.78rem;
+      color: #4ade80;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    #gemini-transcript {
+      font-size: 0.9rem;
+      color: var(--text);
+      text-align: center;
+      min-height: 20px;
+      font-style: italic;
+      opacity: 0.8;
+      max-width: 380px;
+    }
+    #gemini-stop-btn {
+      background: rgba(74,222,128,0.12);
+      border: 1px solid rgba(74,222,128,0.4);
+      color: #4ade80;
+      padding: 8px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    #gemini-stop-btn:hover { background: rgba(74,222,128,0.22); }
+
     /* ── Voice Mode ─────────────────────────────────────────────────── */
     #voice-btn {
       background: none;
@@ -1182,6 +1283,7 @@
   <!-- Input Area -->
   <div id="input-area">
     <div class="input-wrapper">
+      <button id="gemini-live-btn" onclick="toggleGeminiLive()" title="Gemini Live — voz em tempo real com IA do Google">&#127911;<span class="gl-badge">LIVE</span></button>
       <button id="voice-btn" onclick="toggleVoiceMode()" title="Modo Voz — fale com o JARBAS">&#127908;</button>
       <textarea
         id="user-input"
@@ -1191,6 +1293,19 @@
         oninput="autoResize(this)"
       ></textarea>
       <button id="send-btn" onclick="sendMessage()" title="Enviar (Enter)">&#9658;</button>
+    </div>
+    <!-- Gemini Live Overlay -->
+    <div id="gemini-overlay" style="display:none">
+      <h4>&#127311; Gemini Live</h4>
+      <div id="gemini-orb">
+        <div class="gorb-ring gorb-r1"></div>
+        <div class="gorb-ring gorb-r2"></div>
+        <div class="gorb-ring gorb-r3"></div>
+        <div class="gorb-core">G</div>
+      </div>
+      <div id="gemini-status">Conectando...</div>
+      <div id="gemini-transcript"></div>
+      <button id="gemini-stop-btn" onclick="stopGeminiLive()">&#9646;&#9646; Encerrar</button>
     </div>
     <!-- Voice Mode Overlay -->
     <div id="voice-overlay" style="display:none">
@@ -1882,6 +1997,176 @@
   function autoResize(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+  }
+
+  // ── Gemini Live (voz em tempo real via Gemini Live API) ──────────────
+  let geminiWs = null;
+  let geminiActive = false;
+  let geminiAudioCtx = null;
+  let geminiProcessor = null;
+  let geminiStream = null;
+  let geminiRecognition = null;
+
+  function getGeminiWsUrl() {
+    const base = wsUrl
+      .replace(/^ws:\/\//, 'wss://')
+      .replace(/^wss:\/\//, 'wss://')
+      .replace(/\/ws\/.*$/, '');
+    const token = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
+    return `${base}/ws/gemini/${sessionId}${token}`;
+  }
+
+  function toggleGeminiLive() {
+    if (geminiActive) {
+      stopGeminiLive();
+    } else {
+      startGeminiLive();
+    }
+  }
+
+  async function startGeminiLive() {
+    geminiActive = true;
+    document.getElementById('gemini-live-btn').classList.add('active');
+    document.getElementById('gemini-overlay').style.display = 'flex';
+    setGeminiStatus('Conectando...');
+
+    // Conectar WebSocket ao backend
+    const url = getGeminiWsUrl();
+    geminiWs = new WebSocket(url);
+
+    geminiWs.onopen = () => setGeminiStatus('Aguardando Gemini...');
+
+    geminiWs.onmessage = (ev) => {
+      const data = JSON.parse(ev.data);
+      handleGeminiMessage(data);
+    };
+
+    geminiWs.onerror = () => {
+      setGeminiStatus('Erro de conexão');
+      stopGeminiLive();
+    };
+
+    geminiWs.onclose = () => {
+      if (geminiActive) stopGeminiLive();
+    };
+  }
+
+  async function handleGeminiMessage(data) {
+    if (data.type === 'gemini_ready') {
+      setGeminiStatus('Ouvindo...');
+      document.getElementById('gemini-orb').classList.add('active');
+      // Iniciar captura de voz com Web Speech API
+      startGeminiListening();
+    }
+
+    else if (data.type === 'gemini_text') {
+      document.getElementById('gemini-transcript').textContent = data.content;
+      // Também mostra no chat
+      appendMessage('assistant', data.content);
+      scrollToBottom();
+    }
+
+    else if (data.type === 'gemini_audio') {
+      // Reproduzir áudio PCM do Gemini
+      await playGeminiAudio(data.data, data.mime_type);
+    }
+
+    else if (data.type === 'gemini_turn_complete') {
+      setGeminiStatus('Ouvindo...');
+      // Reiniciar escuta após resposta
+      if (geminiActive) {
+        setTimeout(() => startGeminiListening(), 400);
+      }
+    }
+
+    else if (data.type === 'error') {
+      setGeminiStatus('Erro: ' + data.message);
+      setTimeout(() => stopGeminiLive(), 3000);
+    }
+  }
+
+  function startGeminiListening() {
+    if (!geminiActive) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setGeminiStatus('STT não suportado — use Chrome'); return; }
+
+    geminiRecognition = new SR();
+    geminiRecognition.lang = 'pt-BR';
+    geminiRecognition.continuous = false;
+    geminiRecognition.interimResults = true;
+
+    geminiRecognition.onresult = (e) => {
+      const t = Array.from(e.results).map(r => r[0].transcript).join('');
+      document.getElementById('gemini-transcript').textContent = t;
+      if (e.results[0].isFinal && t.trim()) {
+        sendTextToGemini(t.trim());
+      }
+    };
+
+    geminiRecognition.onerror = (e) => {
+      if (e.error === 'no-speech' && geminiActive) startGeminiListening();
+    };
+
+    geminiRecognition.onend = () => {
+      // Não reiniciar aqui — handleGeminiMessage cuida disso após a resposta
+    };
+
+    try { geminiRecognition.start(); } catch(e) {}
+  }
+
+  function sendTextToGemini(text) {
+    if (!geminiWs || geminiWs.readyState !== WebSocket.OPEN) return;
+    setGeminiStatus('Processando...');
+    document.getElementById('gemini-transcript').textContent = `"${text}"`;
+    // Mostrar no chat
+    appendMessage('user', text);
+    scrollToBottom();
+    geminiWs.send(JSON.stringify({ type: 'text', message: text }));
+  }
+
+  async function playGeminiAudio(base64Data, mimeType) {
+    try {
+      const rate = parseInt((mimeType.match(/rate=(\d+)/) || [, '24000'])[1]);
+      const raw = atob(base64Data);
+      const buf = new ArrayBuffer(raw.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+
+      // PCM 16-bit little-endian → Float32
+      const samples = new Int16Array(buf);
+      const float32 = new Float32Array(samples.length);
+      for (let i = 0; i < samples.length; i++) {
+        float32[i] = samples[i] / 32768.0;
+      }
+
+      const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: rate });
+      const audioBuf = ctx.createBuffer(1, float32.length, rate);
+      audioBuf.copyToChannel(float32, 0);
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuf;
+      source.connect(ctx.destination);
+      source.start();
+
+      setGeminiStatus('Falando...');
+      source.onended = () => { ctx.close(); setGeminiStatus('Ouvindo...'); };
+    } catch(e) {
+      console.warn('Erro ao reproduzir áudio Gemini:', e);
+    }
+  }
+
+  function stopGeminiLive() {
+    geminiActive = false;
+    if (geminiRecognition) { try { geminiRecognition.stop(); } catch(e){} geminiRecognition = null; }
+    if (geminiWs) { geminiWs.onclose = null; geminiWs.close(); geminiWs = null; }
+    document.getElementById('gemini-live-btn').classList.remove('active');
+    document.getElementById('gemini-overlay').style.display = 'none';
+    document.getElementById('gemini-orb').classList.remove('active');
+    document.getElementById('gemini-transcript').textContent = '';
+  }
+
+  function setGeminiStatus(msg) {
+    document.getElementById('gemini-status').textContent = msg;
   }
 
   // ── Voice Mode (STT → JARBAS → TTS) ─────────────────────────────────
