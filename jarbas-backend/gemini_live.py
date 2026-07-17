@@ -10,9 +10,12 @@ O Gemini responde com texto e/ou áudio (PCM 24kHz).
 
 import asyncio
 import json
+import logging
 import os
 
 import websockets
+
+logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_LIVE_URL = (
@@ -54,6 +57,7 @@ async def run_gemini_live_session(client_ws, session_id: str):
 
     url = f"{GEMINI_LIVE_URL}?key={GEMINI_API_KEY}"
 
+    logger.info(f"[GeminiLive] Iniciando sessão {session_id}")
     try:
         async with websockets.connect(
             url,
@@ -61,6 +65,7 @@ async def run_gemini_live_session(client_ws, session_id: str):
             ping_timeout=30,
             close_timeout=10,
         ) as gemini_ws:
+            logger.info("[GeminiLive] Conexão WebSocket aberta com o Gemini")
 
             # ── Configuração inicial da sessão ────────────────────────────
             setup = {
@@ -86,11 +91,11 @@ async def run_gemini_live_session(client_ws, session_id: str):
             # Aguarda confirmação do setup
             raw = await asyncio.wait_for(gemini_ws.recv(), timeout=10.0)
             data = json.loads(raw)
+            logger.info(f"[GeminiLive] Resposta do setup: {data}")
             if "setupComplete" not in data:
-                await client_ws.send_json({
-                    "type": "error",
-                    "message": f"Gemini não confirmou setup: {data}"
-                })
+                msg = f"Gemini não confirmou setup: {data}"
+                logger.error(f"[GeminiLive] {msg}")
+                await client_ws.send_json({"type": "error", "message": msg})
                 return
 
             await client_ws.send_json({"type": "gemini_ready"})
@@ -173,13 +178,12 @@ async def run_gemini_live_session(client_ws, session_id: str):
                 return_exceptions=True
             )
 
-    except websockets.exceptions.InvalidURI:
-        await client_ws.send_json({
-            "type": "error",
-            "message": "URL do Gemini Live inválida."
-        })
+    except websockets.exceptions.InvalidURI as exc:
+        logger.error(f"[GeminiLive] URL inválida: {exc}")
+        await client_ws.send_json({"type": "error", "message": "URL do Gemini Live inválida."})
+    except websockets.exceptions.InvalidStatusCode as exc:
+        logger.error(f"[GeminiLive] Status inválido {exc.status_code}: {exc.headers}")
+        await client_ws.send_json({"type": "error", "message": f"Gemini recusou conexão: HTTP {exc.status_code}"})
     except Exception as exc:
-        await client_ws.send_json({
-            "type": "error",
-            "message": f"Erro Gemini Live: {exc}"
-        })
+        logger.error(f"[GeminiLive] Erro inesperado: {type(exc).__name__}: {exc}")
+        await client_ws.send_json({"type": "error", "message": f"Erro Gemini Live: {type(exc).__name__}: {exc}"})
