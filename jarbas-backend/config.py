@@ -27,6 +27,10 @@ class Config:
     # ── Gemini Live (Google AI) ────────────────────────────────────────────
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+    # ── Adapta One 26 ─────────────────────────────────────────────────────────
+    ADAPTA_SESSION_ID: str = os.getenv("ADAPTA_SESSION_ID", "")
+    ADAPTA_CLIENT_UAT: str = os.getenv("ADAPTA_CLIENT_UAT", "")
+
     # ── YouTube Data API ───────────────────────────────────────────────────
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
     # JSON array: [{"alias": "meu_canal", "channel_id": "UCxxxxxxx"}]
@@ -86,6 +90,7 @@ class Config:
             "web_search": bool(self.TAVILY_API_KEY),
             "youtube": bool(self.YOUTUBE_API_KEY),
             "gemini_live": bool(self.GEMINI_API_KEY),
+            "adapta_one": bool(self.ADAPTA_SESSION_ID),
             "version": self.APP_VERSION,
         }
 

@@ -33,6 +33,7 @@ from pydantic import BaseModel
 
 from config import config
 from gemini_live import run_gemini_live_session
+from adapta_bridge import send_to_adapta, check_status as adapta_status
 from memory import (
     save_message,
     get_history,
@@ -657,6 +658,34 @@ async def websocket_gemini_live(websocket: WebSocket, session_id: str, token: st
         await run_gemini_live_session(websocket, session_id)
     except WebSocketDisconnect:
         pass
+
+
+# ── Adapta One 26 ─────────────────────────────────────────────────────────
+
+class AdaptaRequest(BaseModel):
+    prompt: str
+    model: str = "ONE"
+    context_text: str = ""
+    session_id: str = "default"
+
+
+@app.post("/adapta")
+async def adapta_delegate(req: AdaptaRequest, _auth=Security(require_auth)):
+    """Delega uma tarefa ao Adapta One 26 e retorna a resposta."""
+    if not config.ADAPTA_SESSION_ID:
+        raise HTTPException(503, "Adapta One não configurado. Adicione ADAPTA_SESSION_ID no Railway.")
+    result = await send_to_adapta(
+        prompt=req.prompt,
+        model=req.model,
+        context_text=req.context_text,
+    )
+    return {"response": result, "model": req.model}
+
+
+@app.get("/adapta/status")
+async def adapta_check_status():
+    """Verifica conexão com Adapta One 26."""
+    return await adapta_status()
 
 
 # ── Entry point ────────────────────────────────────────────────────────────
