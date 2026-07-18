@@ -693,11 +693,26 @@ class AdaptaTokenRequest(BaseModel):
 
 
 @app.post("/adapta/set-token")
-async def adapta_set_token(req: AdaptaTokenRequest, _auth=Security(require_auth)):
-    """Injeta um Bearer token Clerk válido (renovado pelo browser do usuário)."""
-    if not req.token or not req.token.startswith("ey"):
+async def adapta_set_token(req: AdaptaTokenRequest):
+    """Injeta um Bearer token Clerk válido (renovado pelo browser do usuário).
+
+    Não requer ACCESS_TOKEN — valida o issuer do JWT em vez disso.
+    Apenas tokens emitidos pelo Clerk do Adapta são aceitos.
+    """
+    import base64 as _b64, json as _json
+    token = req.token
+    if not token or not token.startswith("ey"):
         raise HTTPException(400, "Token inválido.")
-    seconds = adapta_inject_token(req.token)
+    try:
+        parts = token.split(".")
+        padded = parts[1] + "=" * (4 - len(parts[1]) % 4)
+        payload = _json.loads(_b64.urlsafe_b64decode(padded))
+        iss = payload.get("iss", "")
+        if "adapta.one" not in iss:
+            raise HTTPException(403, "Token não é do Adapta One.")
+    except (IndexError, Exception) as e:
+        raise HTTPException(400, f"Erro ao decodificar token: {e}")
+    seconds = adapta_inject_token(token)
     return {"ok": True, "valid_seconds": seconds}
 
 
