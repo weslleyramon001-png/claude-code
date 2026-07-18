@@ -125,6 +125,16 @@ async def _get_token() -> str:
         return await _fetch_clerk_token()
 
 
+_AVISO_TOKEN_EXPIRADO = (
+    "🔗 **Adapta One desconectado.**\n\n"
+    "O token expirou. Para reconectar:\n"
+    "1. Abra o site **agent.adapta.one** no navegador\n"
+    "2. Clique no bookmark **'JARBAS → Adapta'** que você salvou\n"
+    "3. Repita sua pergunta\n\n"
+    "*(Funciona por ~60 segundos por visita)*"
+)
+
+
 async def send_to_adapta(
     prompt: str,
     model: str = "ONE",
@@ -144,6 +154,10 @@ async def send_to_adapta(
     """
     if not ADAPTA_SESSION_ID:
         return "❌ ADAPTA_SESSION_ID não configurada. Adicione no Railway."
+
+    # Token sem inject → avisa o usuário em vez de tentar renovar
+    if not _bearer_token or time.time() >= _bearer_expires:
+        return _AVISO_TOKEN_EXPIRADO
 
     token = await _get_token()
 
@@ -297,12 +311,11 @@ async def check_status() -> dict:
     """Status da conexão com Adapta One."""
     if not ADAPTA_SESSION_ID:
         return {"connected": False, "reason": "ADAPTA_SESSION_ID não configurada"}
-    try:
-        tok = await _get_token()
-        return {
-            "connected": bool(tok),
-            "session_id": f"{ADAPTA_SESSION_ID[:10]}...",
-            "token_valid_seconds": max(0, int(_bearer_expires - time.time())),
-        }
-    except Exception as exc:
-        return {"connected": False, "reason": str(exc)}
+    valid = bool(_bearer_token) and time.time() < _bearer_expires
+    remaining = max(0, int(_bearer_expires - time.time())) if valid else 0
+    return {
+        "connected": valid,
+        "session_id": f"{ADAPTA_SESSION_ID[:10]}...",
+        "token_valid_seconds": remaining,
+        "hint": None if valid else "Abra o Adapta One e clique no bookmark 'JARBAS → Adapta'",
+    }
