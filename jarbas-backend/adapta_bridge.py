@@ -269,6 +269,30 @@ async def send_to_adapta(
     return result or "⚠️ Adapta retornou resposta vazia."
 
 
+def inject_token(jwt: str) -> int:
+    """
+    Injeta um Bearer token Clerk fornecido externamente (pelo browser do usuário).
+    Retorna quantos segundos o token ainda é válido (estimativa).
+    """
+    global _bearer_token, _bearer_expires
+    import base64
+
+    _bearer_token = jwt
+    # Tenta decodificar exp do JWT para calcular validade real
+    try:
+        parts = jwt.split(".")
+        padded = parts[1] + "=" * (4 - len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded))
+        exp = payload.get("exp", 0)
+        _bearer_expires = float(exp) - 5  # 5s de margem
+    except Exception:
+        _bearer_expires = time.time() + 55  # fallback: 55s
+
+    remaining = max(0, int(_bearer_expires - time.time()))
+    logger.info(f"[AdaptaBridge] Token injetado externamente — válido por ~{remaining}s")
+    return remaining
+
+
 async def check_status() -> dict:
     """Status da conexão com Adapta One."""
     if not ADAPTA_SESSION_ID:

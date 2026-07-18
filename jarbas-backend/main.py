@@ -33,7 +33,7 @@ from pydantic import BaseModel
 
 from config import config
 from gemini_live import run_gemini_live_session
-from adapta_bridge import send_to_adapta, check_status as adapta_status
+from adapta_bridge import send_to_adapta, check_status as adapta_status, inject_token as adapta_inject_token
 from memory import (
     save_message,
     get_history,
@@ -686,6 +686,19 @@ async def adapta_delegate(req: AdaptaRequest, _auth=Security(require_auth)):
 async def adapta_check_status():
     """Verifica conexão com Adapta One 26."""
     return await adapta_status()
+
+
+class AdaptaTokenRequest(BaseModel):
+    token: str
+
+
+@app.post("/adapta/set-token")
+async def adapta_set_token(req: AdaptaTokenRequest, _auth=Security(require_auth)):
+    """Injeta um Bearer token Clerk válido (renovado pelo browser do usuário)."""
+    if not req.token or not req.token.startswith("ey"):
+        raise HTTPException(400, "Token inválido.")
+    seconds = adapta_inject_token(req.token)
+    return {"ok": True, "valid_seconds": seconds}
 
 
 # ── Entry point ────────────────────────────────────────────────────────────
