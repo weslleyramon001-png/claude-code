@@ -101,14 +101,16 @@ async def serve_ui():
 @app.get("/manifest.json", include_in_schema=False)
 async def serve_manifest():
     f = _ui_dir / "manifest.json"
-    return JSONResponse(content=f.read_text(encoding="utf-8") if f.exists() else {})
+    return JSONResponse(content=json.loads(f.read_text(encoding="utf-8")) if f.exists() else {})
 
 
 @app.get("/sw.js", include_in_schema=False)
 async def serve_sw():
     f = _ui_dir / "sw.js"
-    from fastapi.responses import PlainTextResponse
-    return PlainTextResponse(content=f.read_text(encoding="utf-8") if f.exists() else "")
+    return Response(
+        content=f.read_text(encoding="utf-8") if f.exists() else "",
+        media_type="application/javascript"
+    )
 
 
 # ── Request / Response models ──────────────────────────────────────────────
