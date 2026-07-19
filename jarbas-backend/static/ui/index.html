@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#A855F7" />
+  <meta name="theme-color" content="#00d4ff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="JARBAS" />
@@ -14,21 +14,21 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --primary:   #A855F7;
-      --accent:    #E879F9;
-      --indigo:    #818CF8;
-      --cyan:      #67E8F9;
-      --bg:        #09050F;
-      --card:      #110820;
-      --card2:     #160B28;
-      --border:    rgba(168, 85, 247, 0.25);
-      --border2:   rgba(168, 85, 247, 0.12);
-      --text:      #F1F0F5;
-      --muted:     #8B7FA8;
-      --success:   #34D399;
-      --error:     #F87171;
-      --glow:      rgba(168, 85, 247, 0.35);
-      --glow2:     rgba(232, 121, 249, 0.20);
+      --primary:   #00d4ff;
+      --accent:    #00ffaa;
+      --indigo:    #0088cc;
+      --cyan:      #00d4ff;
+      --bg:        #020810;
+      --card:      #041020;
+      --card2:     #061428;
+      --border:    rgba(0, 212, 255, 0.25);
+      --border2:   rgba(0, 212, 255, 0.12);
+      --text:      #d0eeff;
+      --muted:     #4a7a9b;
+      --success:   #00ffaa;
+      --error:     #ff4466;
+      --glow:      rgba(0, 212, 255, 0.40);
+      --glow2:     rgba(0, 255, 170, 0.15);
       --radius:    12px;
       --font:      'Segoe UI', system-ui, -apple-system, sans-serif;
       --mono:      'Cascadia Code', 'Fira Code', 'Consolas', monospace;
@@ -50,9 +50,9 @@
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(168,85,247,0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 90%, rgba(103,232,249,0.05) 0%, transparent 55%),
-        radial-gradient(ellipse 50% 40% at 60% 40%, rgba(232,121,249,0.06) 0%, transparent 50%);
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,212,255,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 90%, rgba(0,255,170,0.05) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 60% 40%, rgba(0,136,204,0.06) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
       animation: bgPulse 8s ease-in-out infinite alternate;
@@ -106,7 +106,7 @@
 
     @keyframes iconPulse {
       0%, 100% { box-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow2); }
-      50%       { box-shadow: 0 0 30px var(--glow), 0 0 60px var(--glow2), 0 0 80px rgba(168,85,247,0.15); }
+      50%       { box-shadow: 0 0 30px var(--glow), 0 0 60px var(--glow2), 0 0 80px rgba(0,212,255,0.15); }
     }
 
     .logo-text {
@@ -1113,6 +1113,188 @@
     .mov-value.saida   { color: var(--error); }
     .finance-empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px 0; }
     .finance-loading { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px 0; }
+
+    /* ── JARVIS Holographic Figure ──────────────────────────────────── */
+    #jarvis-hud {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #jarvis-hud .hud-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      width: 100%;
+    }
+
+    /* Side info panels */
+    .hud-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 110px;
+      opacity: 0.7;
+    }
+    .hud-panel-right { align-items: flex-start; }
+    .hud-panel-left  { align-items: flex-end; text-align: right; }
+
+    .hud-stat {
+      font-size: 0.62rem;
+      font-family: var(--mono);
+      color: var(--primary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .hud-stat span {
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .hud-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.58rem;
+      font-family: var(--mono);
+      color: var(--primary);
+      letter-spacing: 0.06em;
+    }
+    .hud-bar-track {
+      width: 60px; height: 3px;
+      background: rgba(0,212,255,0.15);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .hud-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 2px;
+      transition: width 1s ease;
+    }
+
+    /* SVG humanoid container */
+    #jarvis-figure-wrap {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      flex-shrink: 0;
+    }
+
+    #jarvis-figure {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 10px rgba(0,212,255,0.7)) drop-shadow(0 0 25px rgba(0,212,255,0.35));
+    }
+
+    /* Scan ring around figure */
+    .fig-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .fig-ring-1 {
+      width: 218px; height: 218px;
+      border-color: rgba(0,212,255,0.35);
+      animation: rotate-cw 8s linear infinite;
+      border-top-color: rgba(0,212,255,0.9);
+    }
+    .fig-ring-2 {
+      width: 240px; height: 240px;
+      border-color: rgba(0,255,170,0.15);
+      animation: rotate-ccw 14s linear infinite;
+      border-right-color: rgba(0,255,170,0.6);
+    }
+
+    /* Waveform canvas (visible when speaking) */
+    #jarvis-wave {
+      width: 200px;
+      height: 28px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      display: block;
+    }
+    #jarvis-wave.active { opacity: 1; }
+
+    /* State indicator label */
+    #jarvis-state-label {
+      font-size: 0.6rem;
+      font-family: var(--mono);
+      color: var(--primary);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-top: 2px;
+    }
+
+    /* Scan line inside figure */
+    @keyframes figScan {
+      0%   { transform: translateY(-50px); opacity: 0; }
+      10%  { opacity: 0.8; }
+      90%  { opacity: 0.8; }
+      100% { transform: translateY(50px); opacity: 0; }
+    }
+    .fig-scan {
+      animation: figScan 3s ease-in-out infinite;
+    }
+
+    /* State: thinking — fast ring pulse */
+    #jarvis-figure-wrap.thinking .fig-ring-1 { animation-duration: 1.5s; border-color: rgba(0,212,255,0.7); }
+    #jarvis-figure-wrap.thinking .fig-ring-2 { animation-duration: 2s; border-color: rgba(0,255,170,0.5); }
+    #jarvis-figure-wrap.thinking #jarvis-figure { filter: drop-shadow(0 0 12px rgba(0,212,255,0.9)) drop-shadow(0 0 30px rgba(0,212,255,0.4)); }
+
+    /* State: speaking */
+    #jarvis-figure-wrap.speaking .fig-ring-1 { border-color: rgba(0,255,170,0.7); border-top-color: rgba(0,255,170,1); animation-duration: 1s; }
+    #jarvis-figure-wrap.speaking #jarvis-figure { filter: drop-shadow(0 0 14px rgba(0,255,170,0.8)) drop-shadow(0 0 35px rgba(0,255,170,0.35)); }
+
+    /* State: listening */
+    #jarvis-figure-wrap.listening .fig-ring-1 { border-color: rgba(255,200,0,0.5); border-top-color: rgba(255,200,0,0.9); }
+    #jarvis-figure-wrap.listening #jarvis-figure { filter: drop-shadow(0 0 10px rgba(255,200,0,0.6)) drop-shadow(0 0 25px rgba(255,200,0,0.3)); }
+
+    /* Orbital particles (CSS animation on SVG circles) */
+    @keyframes orbit-cw  { from { transform: rotate(0deg);   } to { transform: rotate(360deg);  } }
+    @keyframes orbit-ccw { from { transform: rotate(0deg);   } to { transform: rotate(-360deg); } }
+
+    /* ── Arc Reactor rings ─────────────────────────────────────────── */
+    .arc-ring-slow-cw,
+    .arc-ring-med-ccw,
+    .arc-ring-slow-ccw,
+    .arc-ring-fast-cw {
+      transform-box: view-box;
+      transform-origin: 100px 100px;
+    }
+    .arc-ring-slow-cw  { animation: rotate-cw  22s linear infinite; }
+    .arc-ring-med-ccw  { animation: rotate-ccw  8s linear infinite; }
+    .arc-ring-slow-ccw { animation: rotate-ccw 32s linear infinite; }
+    .arc-ring-fast-cw  { animation: rotate-cw   5s linear infinite; }
+
+    /* State: thinking — anéis acelerados */
+    #jarvis-figure-wrap.thinking .arc-ring-slow-cw  { animation-duration: 3s; }
+    #jarvis-figure-wrap.thinking .arc-ring-med-ccw  { animation-duration: 1.5s; }
+    #jarvis-figure-wrap.thinking .arc-ring-fast-cw  { animation-duration: 0.8s; }
+    #jarvis-figure-wrap.thinking .arc-ring-slow-ccw { animation-duration: 5s; }
+
+    /* State: speaking — verde */
+    #jarvis-figure-wrap.speaking .arc-ring-slow-cw,
+    #jarvis-figure-wrap.speaking .arc-ring-med-ccw,
+    #jarvis-figure-wrap.speaking .arc-ring-fast-cw  { stroke: #00ffaa; }
+
+    /* State: listening — dourado */
+    #jarvis-figure-wrap.listening .arc-ring-slow-cw,
+    #jarvis-figure-wrap.listening .arc-ring-med-ccw,
+    #jarvis-figure-wrap.listening .arc-ring-fast-cw { stroke: rgba(255,200,0,0.9); }
+
+    @media (max-width: 600px) {
+      .hud-panel { display: none; }
+      #jarvis-wave { width: 140px; }
+    }
   </style>
 </head>
 <body>
@@ -1257,6 +1439,178 @@
     </div>
   </div>
 
+  <!-- JARVIS HUD -->
+  <div id="jarvis-hud">
+    <div class="hud-row">
+      <!-- Left panel -->
+      <div class="hud-panel hud-panel-left">
+        <div class="hud-stat">STATUS <span id="hud-status">ONLINE</span></div>
+        <div class="hud-bar">
+          CPU
+          <div class="hud-bar-track"><div class="hud-bar-fill" id="hud-cpu" style="width:42%"></div></div>
+        </div>
+        <div class="hud-bar">
+          MEM
+          <div class="hud-bar-track"><div class="hud-bar-fill" id="hud-mem" style="width:67%"></div></div>
+        </div>
+        <div class="hud-stat">NET <span>RAILWAY</span></div>
+      </div>
+
+      <!-- Humanoid figure -->
+      <div id="jarvis-figure-wrap">
+        <div class="fig-ring fig-ring-1"></div>
+        <div class="fig-ring fig-ring-2"></div>
+        <svg id="jarvis-figure" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="arc-core-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"   stop-color="#ffffff" stop-opacity="1"/>
+              <stop offset="20%"  stop-color="#00ffff" stop-opacity="0.85"/>
+              <stop offset="55%"  stop-color="#00d4ff" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="arc-bg-grad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"   stop-color="#001828" stop-opacity="0.85"/>
+              <stop offset="100%" stop-color="#000508" stop-opacity="0.97"/>
+            </radialGradient>
+            <radialGradient id="tri-fill" cx="50%" cy="30%" r="70%">
+              <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.95"/>
+              <stop offset="45%"  stop-color="#00e8ff" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.08"/>
+            </radialGradient>
+            <radialGradient id="ring-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="60%"  stop-color="#001020" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#00d4ff"  stop-opacity="0.12"/>
+            </radialGradient>
+          </defs>
+
+          <!-- === OUTER DECORATIVE RING === -->
+          <circle cx="100" cy="100" r="94" stroke="rgba(0,212,255,0.12)" stroke-width="0.5" fill="none" stroke-dasharray="2 10"/>
+
+          <!-- HUD corner brackets -->
+          <path d="M10 38 L10 10 L38 10" stroke="#00d4ff" stroke-width="0.9" fill="none" opacity="0.4"/>
+          <path d="M190 38 L190 10 L162 10" stroke="#00d4ff" stroke-width="0.9" fill="none" opacity="0.4"/>
+          <path d="M10 162 L10 190 L38 190" stroke="#00d4ff" stroke-width="0.9" fill="none" opacity="0.4"/>
+          <path d="M190 162 L190 190 L162 190" stroke="#00d4ff" stroke-width="0.9" fill="none" opacity="0.4"/>
+          <text x="14" y="23" font-family="monospace" font-size="6" fill="#00d4ff" opacity="0.4">SYS</text>
+          <text x="186" y="23" font-family="monospace" font-size="6" fill="#00d4ff" opacity="0.4" text-anchor="end">4.6</text>
+          <text x="14" y="185" font-family="monospace" font-size="6" fill="#00ffaa" opacity="0.5">AI</text>
+          <text x="186" y="185" font-family="monospace" font-size="6" fill="#00ffaa" opacity="0.5" text-anchor="end">ON</text>
+
+          <!-- Data feed lines — left -->
+          <g stroke="rgba(0,212,255,0.3)" stroke-width="0.6" fill="none">
+            <line x1="50" y1="68" x2="26" y2="68"/>
+            <line x1="50" y1="78" x2="18" y2="78"/>
+            <line x1="50" y1="88" x2="26" y2="88"/>
+            <line x1="50" y1="98" x2="20" y2="98"/>
+            <line x1="50" y1="108" x2="28" y2="108"/>
+            <rect x="10" y="73" width="14" height="10" rx="1.5" stroke-width="0.5"/>
+          </g>
+          <text x="17" y="80" font-family="monospace" font-size="4" fill="#00ffaa" opacity="0.65" text-anchor="middle">LIVE</text>
+
+          <!-- Data feed lines — right -->
+          <g stroke="rgba(0,212,255,0.3)" stroke-width="0.6" fill="none">
+            <line x1="150" y1="68" x2="174" y2="68"/>
+            <line x1="150" y1="78" x2="182" y2="78"/>
+            <line x1="150" y1="88" x2="174" y2="88"/>
+            <line x1="150" y1="98" x2="180" y2="98"/>
+            <line x1="150" y1="108" x2="172" y2="108"/>
+            <rect x="176" y="73" width="14" height="10" rx="1.5" stroke-width="0.5"/>
+          </g>
+          <text x="183" y="80" font-family="monospace" font-size="4" fill="#00ffaa" opacity="0.65" text-anchor="middle">SYNC</text>
+
+          <!-- === ARC REACTOR BACKGROUND === -->
+          <circle cx="100" cy="100" r="93" fill="url(#arc-bg-grad)" opacity="0.9"/>
+          <circle cx="100" cy="100" r="93" fill="url(#ring-glow)"/>
+
+          <!-- === RING r=87 — slow CW, tick marks === -->
+          <circle class="arc-ring-slow-cw" cx="100" cy="100" r="84"
+            stroke="rgba(0,212,255,0.55)" stroke-width="1.2" fill="none"
+            stroke-dasharray="3 6.1"/>
+
+          <!-- === RING r=78 — medium CCW, thick segments === -->
+          <circle class="arc-ring-med-ccw" cx="100" cy="100" r="76"
+            stroke="rgba(0,212,255,0.72)" stroke-width="2" fill="none"
+            stroke-dasharray="10 4.3"/>
+
+          <!-- === RING r=65 — slow CCW, green dots === -->
+          <circle class="arc-ring-slow-ccw" cx="100" cy="100" r="64"
+            stroke="#00ffaa" stroke-width="1" fill="none"
+            stroke-dasharray="1.5 5.8" stroke-opacity="0.65"/>
+
+          <!-- === RING r=55 — fast CW, short segments === -->
+          <circle class="arc-ring-fast-cw" cx="100" cy="100" r="54"
+            stroke="rgba(0,212,255,0.82)" stroke-width="1.5" fill="none"
+            stroke-dasharray="7.5 4.3"/>
+
+          <!-- === SEPARATOR r=46 — static dotted === -->
+          <circle cx="100" cy="100" r="44" stroke="rgba(0,212,255,0.18)" stroke-width="0.5" fill="none" stroke-dasharray="2 6"/>
+
+          <!-- === CORE — dark fill + inner ring === -->
+          <circle cx="100" cy="100" r="38" fill="#001020" opacity="0.94"/>
+          <circle cx="100" cy="100" r="33" stroke="rgba(0,212,255,0.28)" stroke-width="0.8" fill="none"/>
+
+          <!-- === 8 RADIAL LINES N/S/E/W + diagonals === -->
+          <g stroke="rgba(0,212,255,0.22)" stroke-width="0.6" fill="none">
+            <line x1="100" y1="10" x2="100" y2="62"/>
+            <line x1="100" y1="138" x2="100" y2="190"/>
+            <line x1="10"  y1="100" x2="62"  y2="100"/>
+            <line x1="138" y1="100" x2="190" y2="100"/>
+            <line x1="34"  y1="34"  x2="72"  y2="72"/>
+            <line x1="166" y1="34"  x2="128" y2="72"/>
+            <line x1="34"  y1="166" x2="72"  y2="128"/>
+            <line x1="166" y1="166" x2="128" y2="128"/>
+          </g>
+
+          <!-- === DIAMOND MARKERS N/S/E/W === -->
+          <g fill="rgba(0,212,255,0.65)">
+            <polygon points="100,3  103.5,9  100,15  96.5,9"/>
+            <polygon points="100,185 103.5,191 100,197 96.5,191"/>
+            <polygon points="3,100  9,103.5  15,100  9,96.5"/>
+            <polygon points="185,100 191,103.5 197,100 191,96.5"/>
+          </g>
+
+          <!-- === ARC / PWR corner labels === -->
+          <text x="14" y="46" font-family="monospace" font-size="5" fill="rgba(0,255,170,0.55)" letter-spacing="1">ARC</text>
+          <text x="186" y="46" font-family="monospace" font-size="5" fill="rgba(0,255,170,0.55)" text-anchor="end" letter-spacing="1">PWR</text>
+
+          <!-- === ARC REACTOR — triângulo invertido (apex baixo) === -->
+          <polygon points="84.4,91 115.6,91 100,118" fill="url(#tri-fill)" opacity="0.92"/>
+          <polygon points="84.4,91 115.6,91 100,118" stroke="#00e8ff" stroke-width="0.8" fill="none" opacity="0.72"/>
+          <polygon points="84.4,91 115.6,91 100,118" fill="none" stroke="rgba(0,232,255,0.22)" stroke-width="4"/>
+
+          <!-- === CENTER CORE === -->
+          <circle cx="100" cy="100" r="5.5" fill="url(#arc-core-glow)"/>
+          <circle cx="100" cy="100" r="2.5" fill="#ffffff" opacity="0.95"/>
+
+          <!-- === SCAN LINE (animada via JS) === -->
+          <line id="svg-scanline" x1="10" y1="20" x2="190" y2="20" stroke="rgba(0,212,255,0.65)" stroke-width="0.9"/>
+
+          <!-- === ORBITING PARTICLES === -->
+          <circle class="svg-orbit-1" cx="100" cy="16" r="2.5" fill="#00ffaa" opacity="0.9"/>
+          <circle class="svg-orbit-2" cx="100" cy="184" r="2" fill="#00d4ff" opacity="0.65"/>
+        </svg>
+      </div>
+
+      <!-- Right panel -->
+      <div class="hud-panel hud-panel-right">
+        <div class="hud-stat">MODELO <span>CLAUDE</span></div>
+        <div class="hud-bar">
+          TTS
+          <div class="hud-bar-track"><div class="hud-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div class="hud-bar">
+          STT
+          <div class="hud-bar-track"><div class="hud-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div class="hud-stat">SESSION <span id="hud-session">--</span></div>
+      </div>
+    </div>
+
+    <!-- Waveform canvas (sincronizado com voz) -->
+    <canvas id="jarvis-wave" width="200" height="28"></canvas>
+    <div id="jarvis-state-label">AGUARDANDO</div>
+  </div>
+
   <!-- Chat Area -->
   <div id="chat-area">
     <div id="welcome">
@@ -1341,6 +1695,129 @@
     if (waveInterval) { clearInterval(waveInterval); waveInterval = null; }
     document.querySelectorAll('.orb-bars span').forEach(b => { b.style.height = '4px'; });
   }
+
+  // ── JARVIS State & Waveform ──────────────────────────────────────────
+  const _jWrap  = () => document.getElementById('jarvis-figure-wrap');
+  const _jLabel = () => document.getElementById('jarvis-state-label');
+  const _jWave  = () => document.getElementById('jarvis-wave');
+  const _jHudSt = () => document.getElementById('hud-status');
+
+  const JSTATE_LABELS = {
+    idle:      'AGUARDANDO',
+    thinking:  'PROCESSANDO',
+    speaking:  'RESPONDENDO',
+    listening: 'OUVINDO',
+  };
+
+  let _jarbasState = 'idle';
+  let _waveAnim = null;
+  let _waveAudio = null;   // AudioAnalyser when available
+
+  function setJarbasState(state) {
+    _jarbasState = state;
+    const wrap = _jWrap();
+    const label = _jLabel();
+    const wave = _jWave();
+    const hudSt = _jHudSt();
+    if (!wrap) return;
+
+    wrap.classList.remove('idle','thinking','speaking','listening');
+    wrap.classList.add(state);
+    if (label) label.textContent = JSTATE_LABELS[state] || state.toUpperCase();
+    if (hudSt) hudSt.textContent = state === 'idle' ? 'ONLINE' : (JSTATE_LABELS[state] || 'ATIVO');
+
+    if (state === 'speaking') {
+      wave && wave.classList.add('active');
+      _startJWave();
+    } else {
+      wave && wave.classList.remove('active');
+      _stopJWave();
+      if (state === 'thinking') _startJWaveSlow();
+    }
+  }
+
+  function _startJWave() {
+    _stopJWave();
+    const canvas = _jWave();
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    let t = 0;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      const bars = 32;
+      const bw = W / bars;
+      for (let i = 0; i < bars; i++) {
+        const amp = (_jarbasState === 'speaking')
+          ? (Math.sin(t * 3 + i * 0.7) * 0.5 + 0.5) * (10 + Math.random() * 4)
+          : (Math.sin(t * 1.5 + i * 0.5) * 0.3 + 0.3) * 5;
+        const x = i * bw + bw / 2;
+        const h = Math.max(2, amp);
+        const alpha = 0.5 + (amp / 14) * 0.5;
+        ctx.fillStyle = `rgba(0,212,255,${alpha})`;
+        ctx.fillRect(x - bw * 0.3, (H - h) / 2, bw * 0.6, h);
+      }
+      t += 0.08;
+      _waveAnim = requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  function _startJWaveSlow() {
+    _stopJWave();
+    const canvas = _jWave();
+    if (!canvas) return;
+    canvas.classList.add('active');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    let t = 0;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      const bars = 32;
+      const bw = W / bars;
+      for (let i = 0; i < bars; i++) {
+        const amp = (Math.sin(t * 2 + i * 0.5) * 0.5 + 0.5) * 6;
+        const x = i * bw + bw / 2;
+        const h = Math.max(1, amp);
+        ctx.fillStyle = `rgba(0,212,255,0.3)`;
+        ctx.fillRect(x - bw * 0.3, (H - h) / 2, bw * 0.6, h);
+      }
+      t += 0.04;
+      if (_jarbasState === 'thinking') _waveAnim = requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  function _stopJWave() {
+    if (_waveAnim) { cancelAnimationFrame(_waveAnim); _waveAnim = null; }
+    const canvas = _jWave();
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.classList.remove('active');
+  }
+
+  // Update session label in HUD
+  function _updateHudSession() {
+    const el = document.getElementById('hud-session');
+    if (el && sessionId) el.textContent = sessionId.substring(0, 7).toUpperCase();
+  }
+
+  // Scan line animation (JS-driven, no SMIL)
+  (function scanLoop() {
+    const line = document.getElementById('svg-scanline');
+    if (!line) return;
+    let y = 22, dir = 1;
+    function step() {
+      y += dir * 1.2;
+      if (y >= 146) dir = -1;
+      if (y <= 22)  dir =  1;
+      line.setAttribute('y1', y);
+      line.setAttribute('y2', y);
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  })();
 
   // ── State ────────────────────────────────────────────────────────────
   let ws = null;
@@ -1826,10 +2303,12 @@
   function showTyping() {
     document.getElementById('typing-indicator').classList.add('visible');
     scrollToBottom();
+    setJarbasState('thinking');
   }
 
   function hideTyping() {
     document.getElementById('typing-indicator').classList.remove('visible');
+    if (_jarbasState === 'thinking') setJarbasState('idle');
   }
 
   function disableInput() {
@@ -2215,6 +2694,7 @@
     document.getElementById('voice-btn').classList.remove('listening');
     document.getElementById('voice-overlay').style.display = 'none';
     document.getElementById('voice-orb').classList.remove('speaking');
+    setJarbasState('idle');
   }
 
   function startListening() {
@@ -2352,6 +2832,9 @@
 
   function setVoiceStatus(msg) {
     document.getElementById('voice-status').textContent = msg;
+    if (msg.includes('Ouvindo'))      setJarbasState('listening');
+    else if (msg.includes('Falando')) setJarbasState('speaking');
+    else if (msg.includes('Processan')) setJarbasState('thinking');
   }
 
   // ── Init ─────────────────────────────────────────────────────────────
@@ -2360,6 +2843,15 @@
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
     checkAuth();
+    _updateHudSession();
+    setJarbasState('idle');
+    // Animate HUD bars slowly over time
+    setInterval(() => {
+      const cpu = document.getElementById('hud-cpu');
+      const mem = document.getElementById('hud-mem');
+      if (cpu) cpu.style.width = (30 + Math.random() * 50) + '%';
+      if (mem) mem.style.width = (50 + Math.random() * 40) + '%';
+    }, 3000);
     if (accessToken) {
       connect();
       document.getElementById('user-input').focus();

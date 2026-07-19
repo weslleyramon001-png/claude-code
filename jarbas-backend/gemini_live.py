@@ -22,7 +22,7 @@ GEMINI_LIVE_URL = (
     "wss://generativelanguage.googleapis.com/ws/"
     "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
 )
-GEMINI_MODEL = "models/gemini-2.0-flash-exp"
+GEMINI_MODEL = "models/gemini-2.0-flash-live-001"
 
 SYSTEM_PROMPT = (
     "Você é o JARBAS, assistente de IA pessoal do Ramon (Weslley Ramon). "
