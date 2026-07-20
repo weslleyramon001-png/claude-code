@@ -943,6 +943,33 @@
     #voice-btn:hover { color: var(--primary); background: rgba(168,85,247,0.1); }
     #voice-btn.listening { color: #f87171; animation: pulse-mic 1s infinite; }
 
+    #stop-speech-bar {
+      display: flex;
+      justify-content: center;
+      padding: 6px 12px 2px;
+      flex-shrink: 0;
+    }
+    #stop-speech-bar button {
+      background: rgba(255, 60, 80, 0.15);
+      border: 1px solid rgba(255, 60, 80, 0.5);
+      color: #ff4466;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 7px 28px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      animation: pulse-stop 1.2s ease-in-out infinite;
+    }
+    #stop-speech-bar button:hover {
+      background: rgba(255, 60, 80, 0.3);
+      border-color: #ff4466;
+    }
+    @keyframes pulse-stop {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,60,80,0); }
+      50%       { box-shadow: 0 0 0 6px rgba(255,60,80,0.2); }
+    }
+
     #tts-btn {
       background: none;
       border: none;
@@ -1649,6 +1676,11 @@
     </div>
   </div>
 
+  <!-- Barra de parar voz — aparece só quando JARBAS está falando -->
+  <div id="stop-speech-bar" style="display:none">
+    <button onclick="stopSpeech(); if(voiceMode) setTimeout(startListening,400);">&#9646;&#9646; Parar JARBAS</button>
+  </div>
+
   <!-- Input Area -->
   <div id="input-area">
     <div class="input-wrapper">
@@ -1764,6 +1796,9 @@
     wrap.classList.add(state);
     if (label) label.textContent = JSTATE_LABELS[state] || state.toUpperCase();
     if (hudSt) hudSt.textContent = state === 'idle' ? 'ONLINE' : (JSTATE_LABELS[state] || 'ATIVO');
+
+    const stopBar = document.getElementById('stop-speech-bar');
+    if (stopBar) stopBar.style.display = state === 'speaking' ? 'flex' : 'none';
 
     if (state === 'speaking') {
       wave && wave.classList.add('active');
