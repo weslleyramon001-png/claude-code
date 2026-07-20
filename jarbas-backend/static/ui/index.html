@@ -943,6 +943,21 @@
     #voice-btn:hover { color: var(--primary); background: rgba(168,85,247,0.1); }
     #voice-btn.listening { color: #f87171; animation: pulse-mic 1s infinite; }
 
+    #tts-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      color: var(--muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+      opacity: 0.45;
+    }
+    #tts-btn:hover { opacity: 1; background: rgba(0,212,255,0.1); }
+    #tts-btn.active { color: var(--accent); opacity: 1; }
+
     @keyframes pulse-mic {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.2); }
@@ -1639,6 +1654,7 @@
     <div class="input-wrapper">
       <button id="gemini-live-btn" onclick="toggleGeminiLive()" title="Gemini Live — voz em tempo real com IA do Google">&#127911;<span class="gl-badge">LIVE</span></button>
       <button id="voice-btn" onclick="toggleVoiceMode()" title="Modo Voz — fale com o JARBAS">&#127908;</button>
+      <button id="tts-btn" onclick="toggleTTS()" title="Ligar/desligar voz automática">&#128266;</button>
       <textarea
         id="user-input"
         rows="1"
@@ -2856,6 +2872,35 @@
     }
   }
 
+  function toggleTTS() {
+    voiceEnabled = !voiceEnabled;
+    localStorage.setItem('jarbas_voice', voiceEnabled);
+    const btn = document.getElementById('tts-btn');
+    if (voiceEnabled) {
+      btn.innerHTML = '&#128266;';
+      btn.classList.add('active');
+      btn.title = 'Voz automática: LIGADA — clique para desligar';
+    } else {
+      btn.innerHTML = '&#128263;';
+      btn.classList.remove('active');
+      btn.title = 'Voz automática: DESLIGADA — clique para ligar';
+    }
+  }
+
+  function syncTTSBtn() {
+    const btn = document.getElementById('tts-btn');
+    if (!btn) return;
+    if (voiceEnabled) {
+      btn.innerHTML = '&#128266;';
+      btn.classList.add('active');
+      btn.title = 'Voz automática: LIGADA — clique para desligar';
+    } else {
+      btn.innerHTML = '&#128263;';
+      btn.classList.remove('active');
+      btn.title = 'Voz automática: DESLIGADA — clique para ligar';
+    }
+  }
+
   function setVoiceStatus(msg) {
     document.getElementById('voice-status').textContent = msg;
     if (msg.includes('Ouvindo'))      setJarbasState('listening');
@@ -2871,6 +2916,7 @@
     checkAuth();
     _updateHudSession();
     setJarbasState('idle');
+    syncTTSBtn();
     // Animate HUD bars slowly over time
     setInterval(() => {
       const cpu = document.getElementById('hud-cpu');
