@@ -1712,6 +1712,29 @@
   let _jarbasState = 'idle';
   let _waveAnim = null;
   let _waveAudio = null;   // AudioAnalyser when available
+  let _currentAudio = null; // referência global do áudio em reprodução
+
+  function stopSpeech() {
+    if (_currentAudio) {
+      _currentAudio.pause();
+      _currentAudio.currentTime = 0;
+      _currentAudio = null;
+    }
+    window.speechSynthesis.cancel();
+    document.getElementById('voice-orb').classList.remove('speaking');
+    voiceProcessing = false;
+    voiceAutoRestart = true;
+    setJarbasState('idle');
+    setVoiceStatus('Parado.');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _jarbasState === 'speaking') {
+      e.preventDefault();
+      stopSpeech();
+      if (voiceMode) setTimeout(startListening, 400);
+    }
+  });
 
   function setJarbasState(state) {
     _jarbasState = state;
@@ -2367,19 +2390,21 @@
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      _currentAudio = new Audio(audioUrl);
 
       btn.innerHTML = '&#9646;&#9646; Tocando...';
 
-      audio.play();
-      audio.onended = () => {
+      _currentAudio.play();
+      _currentAudio.onended = () => {
+        _currentAudio = null;
         btn.innerHTML = originalText;
         btn.classList.remove('playing');
         btn.disabled = false;
         URL.revokeObjectURL(audioUrl);
       };
 
-      audio.onerror = () => {
+      _currentAudio.onerror = () => {
+        _currentAudio = null;
         btn.innerHTML = originalText;
         btn.classList.remove('playing');
         btn.disabled = false;
@@ -2801,15 +2826,16 @@
       if (response.ok) {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.onended = () => {
+        _currentAudio = new Audio(url);
+        _currentAudio.onended = () => {
           URL.revokeObjectURL(url);
+          _currentAudio = null;
           document.getElementById('voice-orb').classList.remove('speaking');
           voiceProcessing = false;
           voiceAutoRestart = true;
           if (voiceMode) startListening();
         };
-        audio.play();
+        _currentAudio.play();
       } else {
         // No ElevenLabs — use browser TTS as fallback
         const utterance = new SpeechSynthesisUtterance(cleanText);
