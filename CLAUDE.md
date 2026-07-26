@@ -25,15 +25,21 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 | Production URL | `https://claude-code-production-62f5.up.railway.app` |
 | Railway project | `lively-youthfulness` |
 | Local interface | `D:\jarbas.html` (Edge on Dell) |
-| Railway trial expires | **18/07/2026** — upgrade to paid (~R$25/mês) before this date |
+| Local backend (SSD) | `E:\JARBAS\app\main_local.py` (FastAPI porta 8001, Ollama llama3.2:3b) |
+| Railway paid plan | ✅ Upgrade realizado (era trial até 18/07/2026) |
 | Tailscale (Dell) | `100.82.120.121` |
+| ACCESS_TOKEN | `EsbIv-dM0BlmannuhcGED0-zg5WVAdu8nKzdXN2rX0g` |
+| N8N | `https://n8n-production-fea4.up.railway.app` |
 
-### Active Features (as of 26/06/2026)
+### Active Features (as of 26/07/2026)
 
 | Feature | Status |
 |---|---|
 | Chat (Claude `claude-sonnet-4-6`) | ✅ Online |
-| Voice — ElevenLabs Daniel (`onwK4e9ZLuTAKqWW03F9`) | ⚠️ Key needs renewal (401 error) |
+| Voice — ElevenLabs Daniel (`onwK4e9ZLuTAKqWW03F9`) | ⚠️ Chave precisa renovação (erro 401) |
+| Hook Stop de voz (pt-BR-AntonioNeural) | ✅ Reativado (sessão 21/07) |
+| Botão Toggle TTS (🔊/🔇) | ✅ Online (commit 670cce1) |
+| Parar voz com Escape / fone Play/Pause | ✅ Online (commit 290273b) |
 | JARVIS animation (4 rings + waveform) | ✅ Online |
 | Persistent memory (SQLite) | ✅ Online |
 | Web search (Tavily) | ✅ Online |
@@ -42,19 +48,116 @@ The root-level files (`README.md`, `.github/`, `.devcontainer/`) are part of the
 | Bearer Token auth (`ACCESS_TOKEN`) | ✅ Configured on Railway |
 | Push notifications | ✅ Ready |
 | PWA (installable on mobile) | ✅ Ready |
+| SpaceDesk (espelhamento Dell → Samsung TV) | ✅ Configurado (sessão 21/07) |
 
-### Pending Tasks
+### Pending Tasks (atualizado 26/07/2026)
 
 | Priority | Task |
 |---|---|
-| 🔴 URGENT | Renew ElevenLabs API key → update `ELEVENLABS_API_KEY` on Railway |
-| 🟡 Before 18/07 | Upgrade Railway trial to paid plan |
-| ⬜ | Tailscale on other notebooks (Samsung Lyvian etc.) |
-| ⬜ | Clone JARVIS voice (Paul Bettany) on ElevenLabs |
-| ⬜ | MailerLite — set up 7-email funnel (content already written) |
-| ⬜ | Kiwify — publish spreadsheet pack (product ready, just needs upload) |
+| 🔴 URGENTE | Renovar chave ElevenLabs → `ELEVENLABS_API_KEY` no Railway (erro 401) |
+| 🟡 | Corrigir MAX_TOKENS Railway (atualmente 2048 — muito curto, deve ser 4096) |
+| 🟡 | Adicionar data atual no system prompt do JARBAS |
+| 🟡 | Corrigir nick do JARBAS para chamar o usuário de "Major" (atualmente "chefe") |
+| 🟡 | Upload ebooks Pony-Digital no Kiwify (4 PDFs em `D:\Documentos\`) |
+| ⬜ | Workana: selecionar 3 habilidades principais no perfil |
+| ⬜ | Workana: upload de foto de perfil (manual) |
+| ⬜ | Workana: aguardar aprovação (até 15 dias) ou pagar R$59,90 p/ aprovação em 24h |
+| ⬜ | N8N — DM Instagram wl.solucion: configurar webhook (App ID: 2270042597068200) |
+| ⬜ | Tailscale nos outros notebooks (Samsung Lyvian etc.) |
+| ⬜ | Clone voz JARVIS (Paul Bettany) no ElevenLabs |
+| ⬜ | MailerLite — funil 7 emails (conteúdo já escrito) |
+| ⬜ | Publicar Pack Planilhas Pony-Digital no Kiwify (produto pronto, falta upload) |
 
-> To renew ElevenLabs key: `elevenlabs.io` → avatar → Profile → API Keys → delete old key → Create API Key → paste in Railway Variables → confirm `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
+> Para renovar chave ElevenLabs: `elevenlabs.io` → avatar → Profile → API Keys → delete chave antiga → Create API Key → colar em Railway Variables → confirmar `ELEVENLABS_VOICE_ID=onwK4e9ZLuTAKqWW03F9`.
+
+---
+
+## JARBAS — Regra de Consulta à Documentação
+
+**INSTRUÇÃO PERMANENTE — COMBINADO COM O MAJOR (registrado 25/07/2026)**
+
+O JARBAS deve INTERCALAR conhecimento próprio + documentação oficial — não apenas para responder perguntas, mas principalmente para EXECUTAR.
+
+**Regra:**
+1. Se já sei de cabeça com certeza → executo direto.
+2. Se tenho dúvida sobre parâmetro, configuração ou funcionalidade → consulto o link da documentação ANTES de executar.
+3. Se a funcionalidade é nova (pós ago/2025) → consulto sempre.
+
+Isso vale para: configurar MCP, criar/editar hooks, usar Agent SDK, montar workflows e sub-agentes, ajustar settings e permissões, qualquer execução técnica no Claude Code.
+
+**Referência:** Documento com 150+ links da documentação oficial:
+- ID Drive: `1QaOFEXC3PynFYqvDZGRglbKrQNhczC83ahefrr-At9M` (pasta "01 - JARBAS Produção")
+- URL base: `https://code.claude.com/docs/pt/`
+
+---
+
+## JARBAS — Negócios de Ramon
+
+### wl.solucion
+- Site: `https://wl-solucion.vercel.app`
+- Instagram: `@wl.solucion`
+- Produtos no Kiwify:
+
+| Produto | Preço | Checkout |
+|---|---|---|
+| Arsenal IA — 70 Prompts | R$47 | `pay.kiwify.com.br/UAUfzqU` |
+| Primeiros Passos no Digital | R$27 | `pay.kiwify.com.br/SXYIuha` |
+| Clube WL-Solución | R$47/mês | `pay.kiwify.com.br/p2dk5ES` |
+| Mentalidade de Empreendedor | R$27 | `pay.kiwify.com.br/uFSDRrX` |
+| Tráfego e Vendas Online | R$47 | `pay.kiwify.com.br/VKKt5mB` |
+| Renda Passiva com Infoprodutos | R$47 | `pay.kiwify.com.br/JNTNz3n` |
+| ISP Gestão Pro | R$97 | `pay.kiwify.com.br/mgBpE6H` |
+| Liberdade Financeira Digital | R$97 | `pay.kiwify.com.br/TPS1eam` |
+
+### Pony-Digital
+- 13 planilhas prontas → publicar no Kiwify por R$97 (pendente)
+
+### Servlink (ISP)
+- Ramon trabalha lá como Gestor de TI e Infraestrutura (jan/2022 - atual)
+- Token IXC: `57:136a4bdc0468007d8ea07389b411729b8cc6df44cefdd5c2a4ab0abedd4232d1`
+- Servidor IXC: `https://ixc.servlinktelecom.com.br`
+
+### Workana (nova frente — freelance)
+- Perfil criado em 21/07/2026
+- Função: Scripting & Automations
+- Foco: Chatbot WhatsApp + N8N + IA (projetos R$2.500–R$7.000)
+- Portfólio principal: JARBAS (FastAPI + Claude + ElevenLabs + Railway)
+- Experiência Ramon: 10+ anos TI (técnico/supervisor SP + gestão ISP)
+- Meta: renda extra para complementar salário atual de R$2.600/mês
+
+---
+
+## JARBAS — Cérebro no Google Drive
+
+Pasta raiz: `1Vc_ORmy3FS5jh01-EVZrtTQv5Dt27w_4` ("Cérebro Lyvian-IA Claude")
+
+| Subpasta | ID Drive |
+|---|---|
+| 01 - JARBAS Produção | `1C-UKbe_-C38ZmktdSgoFsy9Bqhztvk7h` |
+| 02 - Credenciais e Tokens | `1Eh1vyyjfRumVd6OomVx1xnIzJyufu-W8` |
+| 03 - wl.solucion | `1zuhBuTghAmHpl499aVUC2Oeu77qH9aTv` |
+| 04 - Pony-Digital | `1vHs893Wig2a8KpG8Forl5fq4Qy9OkiM2` |
+| 05 - Redes Sociais | `1wwox4az5zppmmA1jfKGYyxHgtrlGcIuW` |
+| 06 - Infraestrutura | `1lLPKHEawbC3x72-vO8q-peYFOKDcpNHE` |
+| 07 - Pendências | `1mrxPzxvLvC6Z2ictbn64-McyB3d-Gbv0` |
+
+**Documentos-chave na pasta "01 - JARBAS Produção":**
+- `1QaOFEXC3PynFYqvDZGRglbKrQNhczC83ahefrr-At9M` — 150+ links documentação Claude Code
+- `1YQFcWl9k4o0G5wg9aPl-8zdEP7pD4P0XLU9GbSiE6-Q` — Regra de Consulta à Documentação (25/07/2026)
+- `1A00M_PHfbfMBJ78kIgfMlkOWp9J8GESE57a9pYPSFZ0` — Sessão 19/07 (voz interrompível + toggle TTS)
+
+**Arquivos locais importantes no Dell:**
+| O que | Caminho |
+|---|---|
+| Backend local | `C:\jarbas\jarbas-backend\` |
+| Interface web | `C:\jarbas\jarbas-backend\static\ui\index.html` |
+| Extensão mic toggle | `C:\Users\WESLLEY RAMON\jarbas-ext\` |
+| AHK fone YYK-520 | `C:\Users\WESLLEY RAMON\jarbas-ext\jarbas-fone.ahk` |
+| Launch script | `C:\Users\WESLLEY RAMON\jarbas-ext\launch-jarbas.ps1` |
+| Agente local | `C:\Users\WESLLEY RAMON\JARBAS\agente_local.py` |
+| Python voz local | `C:\Users\WESLLEY RAMON\JARBAS\jarbas_voz.py` |
+
+**REGRA PERMANENTE:** Sempre atualizar o Drive ao fim de cada sessão. É o backup center do JARBAS.
 
 ---
 
@@ -288,4 +391,5 @@ The `claude.yml` action uses Workload Identity Federation — configure `ANTHROP
 - **Screenshot results** flow back to Claude as vision (`image` content blocks), not plain text — this is the only place the response content is non-text.
 - **Memory system has two layers:** automatic regex extraction from messages (`auto_extract_and_save` in `memory.py`) + explicit tool calls (`save_memory`, `list_memories`, `delete_memory`). Both write to the same `user_facts` table and are injected into every system prompt.
 - The `weslley_profile.md` file in `jarbas-backend/` is context documentation for JARBAS's persona/tools but is **not loaded at runtime**; facts are stored in SQLite instead.
-- **JARBAS persona** is defined in `personality.py`. It addresses the user as "Ramon" or "chefe". It knows about Ramon's businesses: **Pony-Digital** (digital products, Instagram marketing, spreadsheet packs on Kiwify/Hotmart) and **Servlink** (internet service provider).
+- **JARBAS persona** is defined in `personality.py`. It addresses the user as "Ramon" or "Major" (pending fix — currently "chefe" in code). It knows about Ramon's businesses: **wl.solucion** (produtos digitais IA/automação), **Pony-Digital** (marketing, planilhas no Kiwify), and **Servlink** (ISP — Ramon works there as IT Manager, does not own it).
+- **N8N API Key** expires 08/08/2026 — renew at the Railway n8n instance.
