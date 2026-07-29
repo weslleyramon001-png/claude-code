@@ -48,6 +48,7 @@ from memory import (
 )
 from personality import get_system_prompt
 from tools import format_tools_for_claude, process_tool_call
+from obsidian_bridge import salvar_nota, fechar_sessao
 from voice import text_to_speech
 
 
@@ -716,6 +717,55 @@ async def adapta_set_token(req: AdaptaTokenRequest):
         raise HTTPException(400, f"Erro ao decodificar token: {e}")
     seconds = adapta_inject_token(token)
     return {"ok": True, "valid_seconds": seconds}
+
+
+# ── Obsidian Bridge ────────────────────────────────────────────────────────
+
+
+class SalvarNotaRequest(BaseModel):
+    titulo: str
+    conteudo: str
+    pasta: Optional[str] = "CEREBRO DO JARBAS IA CLAUDE/99 - Sessões"
+    nome_arquivo: Optional[str] = None
+
+
+class FecharSessaoRequest(BaseModel):
+    resumo: str
+    decisoes: list[str] = []
+    pendencias: list[str] = []
+
+
+@app.post("/salvar-nota", dependencies=[Depends(require_auth)])
+async def endpoint_salvar_nota(req: SalvarNotaRequest):
+    """
+    Salva uma nota markdown diretamente no vault do Obsidian via GitHub.
+    O Obsidian sincroniza automaticamente. Requer GITHUB_TOKEN no Railway.
+    """
+    resultado = await salvar_nota(
+        titulo=req.titulo,
+        conteudo=req.conteudo,
+        pasta=req.pasta,
+        nome_arquivo=req.nome_arquivo,
+    )
+    if resultado["status"] == "erro":
+        raise HTTPException(status_code=500, detail=resultado["mensagem"])
+    return resultado
+
+
+@app.post("/fechar-sessao", dependencies=[Depends(require_auth)])
+async def endpoint_fechar_sessao(req: FecharSessaoRequest):
+    """
+    Gera e salva automaticamente o log de sessão no Obsidian.
+    Cria log curto em 05-sessoes/ e memória detalhada em 99 - Sessões/.
+    """
+    resultado = await fechar_sessao(
+        resumo=req.resumo,
+        decisoes=req.decisoes,
+        pendencias=req.pendencias,
+    )
+    if resultado["status"] == "erro":
+        raise HTTPException(status_code=500, detail=str(resultado["detalhes"]))
+    return resultado
 
 
 # ── Entry point ────────────────────────────────────────────────────────────

@@ -45,6 +45,9 @@ class Config:
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     GOOGLE_REFRESH_TOKEN: str = os.getenv("GOOGLE_REFRESH_TOKEN", "")
 
+    # ── GitHub / Obsidian Bridge ───────────────────────────────────────────────
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+
     # ── Security ───────────────────────────────────────────────────────────
     SECRET_KEY: str = os.getenv("SECRET_KEY", "jarbas-dev-secret-change-in-production")
     ACCESS_TOKEN: str = os.getenv("ACCESS_TOKEN", "")
