@@ -152,6 +152,8 @@ async def send_to_adapta(
     Returns:
         Texto completo da resposta do Adapta
     """
+    global _bearer_token
+
     if not ADAPTA_SESSION_ID:
         return "❌ ADAPTA_SESSION_ID não configurada. Adicione no Railway."
 
@@ -244,7 +246,6 @@ async def send_to_adapta(
                 ) as resp:
                     if resp.status_code == 401 and attempt == 0:
                         logger.warning("[AdaptaBridge] 401 — forçando renovação de token...")
-                        global _bearer_token
                         _bearer_token = ""
                         token = await _get_token()
                         headers["authorization"] = f"Bearer {token}"
